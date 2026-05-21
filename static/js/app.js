@@ -45,7 +45,7 @@ function getApiBaseUrl() {
         hostname.endsWith('.loca.lt')) {
         return '';
     } else {
-        return 'https://angry-pens-push.loca.lt';
+        return 'https://cruel-kings-wash.loca.lt';
     }
 }
 
