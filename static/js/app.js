@@ -42,10 +42,11 @@ function getApiBaseUrl() {
         hostname.startsWith('192.168.') || 
         hostname.startsWith('10.') || 
         hostname.startsWith('172.') || 
-        hostname.endsWith('.loca.lt')) {
+        hostname.endsWith('.loca.lt') ||
+        hostname.endsWith('.serveousercontent.com')) {
         return '';
     } else {
-        return 'https://cruel-kings-wash.loca.lt';
+        return 'https://c44284a5ebc728c5-103-174-198-26.serveousercontent.com';
     }
 }
 

@@ -23,18 +23,22 @@ def index():
 def generate():
     # 1. Validation Checks
     if 'portrait' not in request.files:
+        print("Validation error: 'portrait' not in request.files. Available files:", list(request.files.keys()))
         return jsonify({'error': 'Missing portrait image'}), 400
         
     portrait_file = request.files['portrait']
     if portrait_file.filename == '':
+        print("Validation error: portrait filename is empty")
         return jsonify({'error': 'No selected portrait file'}), 400
         
     if not allowed_file(portrait_file.filename):
+        print(f"Validation error: portrait filename '{portrait_file.filename}' not allowed")
         return jsonify({'error': 'Invalid portrait image format. Supported formats: PNG, JPG, JPEG, WEBP'}), 400
 
     profile_file = request.files.get('profile')
     profile_has_file = profile_file and profile_file.filename != ''
     if profile_has_file and not allowed_file(profile_file.filename):
+        print(f"Validation error: profile filename '{profile_file.filename}' not allowed")
         return jsonify({'error': 'Invalid profile image format. Supported formats: PNG, JPG, JPEG, WEBP'}), 400
 
     # 2. Extract Options
