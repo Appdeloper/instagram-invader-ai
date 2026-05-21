@@ -47,6 +47,10 @@
                             <span class="user-email" id="user-email-text">guest@example.com</span>
                         </div>
                         <div class="dropdown-divider"></div>
+                        <button class="dropdown-item upgrade-btn" id="header-pricing-btn">
+                            <i class="fa-solid fa-gem"></i> Upgrade Plans
+                        </button>
+                        <div class="dropdown-divider"></div>
                         <button class="dropdown-item logout-btn" id="header-logout-btn">
                             <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
                         </button>
@@ -142,18 +146,17 @@
                         </div>
 
                         <!-- Sliders & Theme Configuration Row -->
-                        <div class="config-flex-row">
-                            <!-- Cinematic Glow Slider -->
-                            <div class="form-group flex-1">
-                                <div class="flex-label-header">
-                                    <label class="group-label" for="intensity-slider">Cinematic Glow</label>
-                                    <span class="value-readout" id="glow-value">65%</span>
-                                </div>
-                                <div class="slider-wrapper-custom">
-                                    <input type="range" id="intensity-slider" name="intensity" min="0.5" max="2.0" step="0.05" value="1.0">
-                                </div>
+                        <div class="form-group">
+                            <div class="flex-label-header">
+                                <label class="group-label" for="intensity-slider">Cinematic Glow</label>
+                                <span class="value-readout" id="glow-value">65%</span>
                             </div>
+                            <div class="slider-wrapper-custom">
+                                <input type="range" id="intensity-slider" name="intensity" min="0.5" max="2.0" step="0.05" value="1.0">
+                            </div>
+                        </div>
 
+                        <div class="config-flex-row">
                             <!-- Dark/Light theme Toggle -->
                             <div class="form-group flex-1">
                                 <label class="group-label">Instagram UI Theme</label>
@@ -162,6 +165,16 @@
                                     <button type="button" class="theme-switch-btn" data-theme="light">Light</button>
                                 </div>
                                 <input type="hidden" id="theme" name="theme" value="dark">
+                            </div>
+
+                            <!-- Output Resolution Toggle -->
+                            <div class="form-group flex-1">
+                                <label class="group-label">Output Quality</label>
+                                <div class="resolution-switch-pill">
+                                    <button type="button" class="resolution-switch-btn active" data-res="1080">Standard (1080p)</button>
+                                    <button type="button" class="resolution-switch-btn" data-res="4k">Ultra 4K (2160p)</button>
+                                </div>
+                                <input type="hidden" id="resolution" name="resolution" value="1080">
                             </div>
                         </div>
 
@@ -376,7 +389,7 @@
     </footer>
 
     <!-- Full-screen Authentication Overlay -->
-    <div class="auth-overlay" id="auth-overlay" style="display: none;">
+    <div class="auth-overlay" id="auth-overlay">
         <div class="auth-container glassmorphic animate-fade-in">
             <div class="auth-brand">
                 INSTAGRAM INVADER <span class="accent-glow">AI</span>
@@ -581,9 +594,225 @@
         </div>
     </div>
 
+    <!-- Connection Error Modal -->
+    <div class="stitch-modal-overlay" id="connection-error-modal" style="display: none;">
+        <div class="stitch-modal-container glassmorphic animate-fade-in" style="max-width: 550px; width: 95%;">
+            <div class="stitch-modal-header">
+                <div class="stitch-brand" style="color: var(--accent-pink);">
+                    <i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-pink); filter: drop-shadow(0 0 5px var(--accent-pink));"></i> Connection Warning
+                </div>
+                <button type="button" class="stitch-close-btn" id="conn-error-close-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div style="overflow-y: auto; flex: 1; padding-right: 0.5rem; margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.6;">
+                <p style="margin-bottom: 1rem; color: #fff; font-weight: 600;">
+                    Failed to reach the Flask API server.
+                </p>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                    Since this website is loaded securely via <strong style="color: #fff;">HTTPS</strong> (<code style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: monospace;">appdeloper.github.io</code>), browsers block insecure connection requests (<strong style="color: var(--accent-pink);">HTTP</strong>) to local IP addresses or external local servers due to security policies (Mixed Content).
+                </p>
+
+                <div class="error-step-card" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 1.2rem; margin-bottom: 1rem;">
+                    <h4 style="color: var(--accent-cyan); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
+                        <i class="fa-solid fa-desktop"></i> Option A: Run Entirely Locally (Recommended)
+                    </h4>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                        Run both the frontend and backend on your computer to bypass all security limitations.
+                    </p>
+                    <ol style="color: var(--text-muted); font-size: 0.85rem; padding-left: 1.2rem; margin: 0;">
+                        <li>Open <a href="http://localhost:5000" target="_blank" style="color: var(--accent-cyan); text-decoration: underline;">http://localhost:5000</a> in your browser.</li>
+                        <li>This uses the local files served directly by your running Flask backend server!</li>
+                    </ol>
+                </div>
+
+                <div class="error-step-card" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 1.2rem; margin-bottom: 0.5rem;">
+                    <h4 style="color: var(--accent-cyan); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
+                        <i class="fa-solid fa-network-wired"></i> Option B: Connect Mobile / Remote Browser
+                    </h4>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.8rem;">
+                        Expose your PC's Flask server via a secure HTTPS tunnel so your phone can safely connect to it:
+                    </p>
+                    
+                    <div style="margin-bottom: 0.8rem;">
+                        <span style="font-size: 0.8rem; color: #fff; display: block; margin-bottom: 0.3rem; font-weight: 600;">1. Start a secure tunnel (run in your PC terminal):</span>
+                        <div style="display: flex; gap: 0.5rem; background: #0c0818; padding: 0.6rem 0.8rem; border-radius: 8px; align-items: center; border: 1px solid rgba(255,255,255,0.05);">
+                            <code style="font-family: monospace; color: var(--accent-cyan); font-size: 0.85rem; flex: 1; overflow-x: auto; white-space: nowrap;" id="code-localtunnel">npx localtunnel --port 5000</code>
+                            <button class="utility-icon-btn" onclick="copyConnCode('code-localtunnel', this)" title="Copy Code" style="padding: 4px 8px; height: auto; font-size: 0.8rem; border: none; background: transparent; cursor: pointer; color: var(--text-muted);">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.3rem;">Alternative: <code style="font-family: monospace; color: #ccc;">ngrok http 5000</code></span>
+                    </div>
+
+                    <div style="margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.8rem; color: #fff; display: block; margin-bottom: 0.3rem; font-weight: 600;">2. Apply secure URL:</span>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 0.5rem 0;">
+                            Copy the generated secure <strong style="color: #fff;">https://...</strong> URL, click <strong>Configure Settings</strong> below, and paste it into the <strong>Flask API Base URL</strong> field.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button type="button" class="sandbox-action-btn" id="conn-error-cancel-btn" style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted);">Close</button>
+                <button type="button" class="sandbox-action-btn" id="conn-error-settings-btn" style="background: var(--accent-cyan); color: #000; font-weight: 600;">Configure Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sleek Glassmorphic Bottom Navigation Bar for Mobile -->
+    <nav class="mobile-bottom-nav glassmorphic">
+        <button class="tab-btn active" data-tab="dashboard">
+            <i class="fa-solid fa-sliders"></i>
+            <span>Invade</span>
+        </button>
+        <button class="tab-btn" data-tab="presets">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Presets</span>
+        </button>
+        <button class="tab-btn" data-tab="gallery">
+            <i class="fa-solid fa-images"></i>
+            <span>Gallery</span>
+        </button>
+        <button class="tab-btn" data-tab="history">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>History</span>
+        </button>
+    </nav>
+
+    <!-- Pricing Modal -->
+    <div class="stitch-modal-overlay" id="pricing-modal" style="display: none;">
+        <div class="stitch-modal-container glassmorphic animate-fade-in" style="max-width: 900px; width: 95%;">
+            <div class="stitch-modal-header">
+                <div class="stitch-brand">
+                    <i class="fa-solid fa-gem"></i> Instagram Creator Pro
+                </div>
+                <button type="button" class="stitch-close-btn" id="pricing-close-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <p class="pricing-modal-desc">Elevate your meme creation game with cinematic depth maps, higher resolutions, and custom tear presets.</p>
+            
+            <div class="pricing-grid">
+                <!-- Card 1: Free -->
+                <div class="pricing-card glassmorphic">
+                    <div class="pricing-card-header">
+                        <h3>Starter</h3>
+                        <div class="pricing-price">$0<span>/forever</span></div>
+                        <p class="pricing-tagline">Perfect for casual creators</p>
+                    </div>
+                    <div class="pricing-features">
+                        <ul>
+                           <li><i class="fa-solid fa-check feature-check"></i> Standard Resolution</li>
+                            <li><i class="fa-solid fa-check feature-check"></i> 4 Procedural Tear Styles</li>
+                            <li><i class="fa-solid fa-check feature-check"></i> Guest Sandbox Access</li>
+                            <li><i class="fa-solid fa-xmark feature-unsupported"></i> 4K High Resolution output</li>
+                            <li><i class="fa-solid fa-xmark feature-unsupported"></i> Custom Tear Vector Uploads</li>
+                        </ul>
+                    </div>
+                    <button class="pricing-btn secondary-btn" disabled>Current Plan</button>
+                </div>
+                
+                <!-- Card 2: Pro -->
+                <div class="pricing-card glassmorphic popular-card">
+                    <div class="popular-badge">MOST POPULAR</div>
+                    <div class="pricing-card-header">
+                        <h3>Creator Pro</h3>
+                        <div class="pricing-price">$9<span>/month</span></div>
+                        <p class="pricing-tagline">For active viral meme makers</p>
+                    </div>
+                    <div class="pricing-features">
+                        <ul>
+                            <li><i class="fa-solid fa-check feature-check"></i> 4K High Resolution Output</li>
+                            <li><i class="fa-solid fa-check feature-check"></i> All Tearing Presets & Canvas tools</li>
+                            <li><i class="fa-solid fa-check feature-check"></i> Priority Processing Queue</li>
+                            <li><i class="fa-solid fa-check feature-check"></i> Custom Tear Vector Uploads</li>
+                            <li><i class="fa-solid fa-xmark feature-unsupported"></i> Batch processing API</li>
+                        </ul>
+                    </div>
+                    <button class="pricing-btn primary-glow-btn" onclick="alert('Thank you for choosing Creator Pro! Stripe sandbox integration is booting...')">Upgrade to Pro</button>
+                </div>
+                
+                <!-- Card 3: Creator Bundle -->
+                <div class="pricing-card glassmorphic">
+                    <div class="pricing-card-header">
+                        <h3>Studio Bundle</h3>
+                        <div class="pricing-price">$29<span>/month</span></div>
+                        <p class="pricing-tagline">For professional social teams</p>
+                    </div>
+                    <div class="pricing-features">
+                        <ul>
+                            <li><i class="fa-solid fa-check feature-check"></i> Everything in Creator Pro</li>
+                            <li><i class="fa-solid fa-check feature-check"></i> Batch processing API</li>
+                            <li><i class="fa-solid fa-check feature-check"></i> Team Shared Asset Library</li>
+                            <li><i class="fa-solid fa-check feature-check"></i> 24/7 Dedicated Server Support</li>
+                            <li><i class="fa-solid fa-check feature-check"></i> Whitelabel UI Integration</li>
+                        </ul>
+                    </div>
+                    <button class="pricing-btn secondary-btn" onclick="alert('Boots Studio Bundle registration...')">Get Studio Bundle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Cropper Modal -->
+    <div class="stitch-modal-overlay" id="cropper-modal" style="display: none;">
+        <div class="stitch-modal-container glassmorphic animate-fade-in" style="max-width: 600px; width: 95%;">
+            <div class="stitch-modal-header">
+                <div class="stitch-brand">
+                    <i class="fa-solid fa-crop-simple"></i> Crop & Fine-Tune Subject
+                </div>
+                <button type="button" class="stitch-close-btn" id="cropper-close-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="cropper-workspace">
+                <div class="cropper-canvas-container" id="cropper-canvas-container">
+                    <canvas id="cropper-canvas"></canvas>
+                    <div class="cropper-grid-overlay">
+                        <div class="grid-line grid-v1"></div>
+                        <div class="grid-line grid-v2"></div>
+                        <div class="grid-line grid-h1"></div>
+                        <div class="grid-line grid-h2"></div>
+                    </div>
+                    <!-- Crop selection frame handles -->
+                    <div class="cropper-drag-handle handle-tl" data-handle="tl"></div>
+                    <div class="cropper-drag-handle handle-tr" data-handle="tr"></div>
+                    <div class="cropper-drag-handle handle-bl" data-handle="bl"></div>
+                    <div class="cropper-drag-handle handle-br" data-handle="br"></div>
+                </div>
+            </div>
+            
+            <div class="cropper-controls-row">
+                <button type="button" class="cropper-control-btn" id="cropper-rot-left" title="Rotate Left">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+                <button type="button" class="cropper-control-btn" id="cropper-rot-right" title="Rotate Right">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button type="button" class="cropper-control-btn" id="cropper-flip-h" title="Flip Horizontal">
+                    <i class="fa-solid fa-arrows-left-right"></i>
+                </button>
+                
+                <div class="aspect-ratio-selector">
+                    <button type="button" class="aspect-ratio-btn active" data-ratio="free">Free</button>
+                    <button type="button" class="aspect-ratio-btn" data-ratio="1:1">1:1</button>
+                    <button type="button" class="aspect-ratio-btn" data-ratio="4:5">4:5</button>
+                    <button type="button" class="aspect-ratio-btn" data-ratio="16:9">16:9</button>
+                </div>
+            </div>
+            
+            <div class="cropper-actions-row">
+                <button type="button" class="sandbox-action-btn cropper-btn-cancel" id="cropper-cancel-btn">Cancel</button>
+                <button type="button" class="sandbox-action-btn cropper-btn-apply" id="cropper-apply-btn">
+                    <i class="fa-solid fa-check"></i> Apply Crop
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDK (Compat Version for Easy Global Script Loading) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 
     <!-- Authentication Configuration & Core logic -->
     <script src="static/js/firebase-config.js"></script>

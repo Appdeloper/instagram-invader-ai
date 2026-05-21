@@ -49,21 +49,41 @@ def auto_orient_image(img):
         return img
 
 def remove_background(img):
-    """Remove background using rembg and smooth the edges."""
-    from rembg import remove
-    
-    # Remove background
-    cutout = remove(img)
-    
-    # Feather edges slightly for realism
-    # Split channels
-    r, g, b, a = cutout.split()
-    # Smooth the alpha channel using a small Gaussian blur and threshold
-    a_blurred = a.filter(ImageFilter.GaussianBlur(1.0))
-    # Combine back
-    smoothed_cutout = Image.merge("RGBA", (r, g, b, a_blurred))
-    
-    return smoothed_cutout
+    """Remove background using rembg and smooth the edges with robust fallback."""
+    try:
+        from rembg import remove
+        # Remove background
+        cutout = remove(img)
+        
+        # Feather edges slightly for realism
+        # Split channels
+        r, g, b, a = cutout.split()
+        # Smooth the alpha channel using a small Gaussian blur and threshold
+        a_blurred = a.filter(ImageFilter.GaussianBlur(1.0))
+        # Combine back
+        smoothed_cutout = Image.merge("RGBA", (r, g, b, a_blurred))
+        return smoothed_cutout
+    except Exception as e:
+        print(f"rembg background removal failed, applying fallback: {e}")
+        # Robust fallback: return image with a circular or soft gradient mask
+        # so it doesn't crash the server. We will create a soft vignette/circular cutout
+        w, h = img.size
+        # Create a circle/oval alpha mask
+        mask = Image.new("L", (w, h), 0)
+        md = ImageDraw.Draw(mask)
+        # draw soft oval filling 80% of width/height
+        margin_x = int(w * 0.1)
+        margin_y = int(h * 0.1)
+        md.ellipse([margin_x, margin_y, w - margin_x, h - margin_y], fill=255)
+        mask = mask.filter(ImageFilter.GaussianBlur(min(w, h) * 0.03)) # soft edge
+        
+        # Merge source image with mask
+        rgba_img = img.convert("RGBA")
+        r, g, b, a = rgba_img.split()
+        # Multiply existing alpha channel with our soft circle mask
+        fallback_a = ImageChops.multiply(a, mask)
+        return Image.merge("RGBA", (r, g, b, fallback_a))
+
 
 def displace_segment(p1, p2, roughness, depth, current_depth=0):
     """Recursively displace the midpoint of a segment to create a fractal edge."""
@@ -168,13 +188,16 @@ def create_tear_masks(w, h, style='circle', intensity=1.0):
         left_x_base = w * (0.5 - 0.16 * intensity)
         right_x_base = w * (0.5 + 0.16 * intensity)
         
+        scale = w / 1080.0
+        var_range = 20 * scale
+        
         # Generate jagged lines from top to bottom
-        p_left_top = (left_x_base + random.uniform(-20, 20), 0)
-        p_left_bottom = (left_x_base + random.uniform(-20, 20), h)
+        p_left_top = (left_x_base + random.uniform(-var_range, var_range), 0)
+        p_left_bottom = (left_x_base + random.uniform(-var_range, var_range), h)
         left_edge = generate_jagged_line(p_left_top, p_left_bottom, depth=5, roughness=0.14)
         
-        p_right_top = (right_x_base + random.uniform(-20, 20), 0)
-        p_right_bottom = (right_x_base + random.uniform(-20, 20), h)
+        p_right_top = (right_x_base + random.uniform(-var_range, var_range), 0)
+        p_right_bottom = (right_x_base + random.uniform(-var_range, var_range), h)
         right_edge = generate_jagged_line(p_right_top, p_right_bottom, depth=5, roughness=0.14)
         
         # Draw Left sheet paper: we erase the center hole.
@@ -191,13 +214,16 @@ def create_tear_masks(w, h, style='circle', intensity=1.0):
         top_y_base = h * (0.5 - 0.16 * intensity)
         bottom_y_base = h * (0.5 + 0.16 * intensity)
         
+        scale = w / 1080.0
+        var_range = 20 * scale
+        
         # Generate jagged lines from left to right
-        p_top_left = (0, top_y_base + random.uniform(-20, 20))
-        p_top_right = (w, top_y_base + random.uniform(-20, 20))
+        p_top_left = (0, top_y_base + random.uniform(-var_range, var_range))
+        p_top_right = (w, top_y_base + random.uniform(-var_range, var_range))
         top_edge = generate_jagged_line(p_top_left, p_top_right, depth=5, roughness=0.14)
         
-        p_bottom_left = (0, bottom_y_base + random.uniform(-20, 20))
-        p_bottom_right = (w, bottom_y_base + random.uniform(-20, 20))
+        p_bottom_left = (0, bottom_y_base + random.uniform(-var_range, var_range))
+        p_bottom_right = (w, bottom_y_base + random.uniform(-var_range, var_range))
         bottom_edge = generate_jagged_line(p_bottom_left, p_bottom_right, depth=5, roughness=0.14)
         
         # Draw center hole polygon
@@ -243,11 +269,12 @@ def create_tear_masks(w, h, style='circle', intensity=1.0):
 def apply_inner_shadow(hole_mask, intensity=0.7):
     """Cast a shadow from the paper edge INWARD into the hole."""
     w, h = hole_mask.size
+    scale = w / 1080.0
     # Invert to get paper mask
     paper_mask = ImageOps.invert(hole_mask)
     
     # Blur the paper mask to create a soft bleed into the hole
-    blur_radius = 18
+    blur_radius = max(1, int(18 * scale))
     blurred_paper = paper_mask.filter(ImageFilter.GaussianBlur(blur_radius))
     
     # Mask it with hole_mask so the shadow is only visible inside the hole
@@ -266,9 +293,10 @@ def apply_inner_shadow(hole_mask, intensity=0.7):
 def apply_drop_shadow(paper_mask, intensity=0.6, offset=(6, 10)):
     """Cast a shadow from the paper sheet OUTWARD onto the background."""
     w, h = paper_mask.size
+    scale = w / 1080.0
     
     # Create shadow mask by blurring the paper mask
-    blur_radius = 24
+    blur_radius = max(1, int(24 * scale))
     shadow_mask = paper_mask.filter(ImageFilter.GaussianBlur(blur_radius))
     
     # Create black RGBA image
@@ -279,8 +307,9 @@ def apply_drop_shadow(paper_mask, intensity=0.6, offset=(6, 10)):
     shadow_img = Image.fromarray(shadow_arr, mode="RGBA")
     
     # Apply offset
+    scaled_offset = (int(offset[0] * scale), int(offset[1] * scale))
     offset_shadow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    offset_shadow.paste(shadow_img, offset)
+    offset_shadow.paste(shadow_img, scaled_offset)
     
     return offset_shadow
 
@@ -355,10 +384,12 @@ def draw_meme_text(img, text, theme='dark'):
     """Draw meme text at the top-left of the image with a cinematic bold style and soft drop shadow."""
     draw = ImageDraw.Draw(img)
     w, h = img.size
+    scale = w / 1080.0
     
     # Load Font
     font_size = int(w * 0.038)  # Auto-scaled based on canvas size
-    font_size = max(24, min(font_size, 64))
+    max_font_limit = int(64 * scale)
+    font_size = max(24, min(font_size, max_font_limit))
     
     try:
         if os.path.exists(FONT_PATH):
@@ -379,15 +410,20 @@ def draw_meme_text(img, text, theme='dark'):
     shadow_img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     s_draw = ImageDraw.Draw(shadow_img)
     
+    # Scale shadow offset and blur by scale factor
+    shadow_offset = int(3 * scale)
+    shadow_blur = 3.0 * scale
+    
     # Draw text on shadow layer
-    s_draw.text((x + 3, y + 3), text, fill=(0, 0, 0, 230), font=font)
+    s_draw.text((x + shadow_offset, y + shadow_offset), text, fill=(0, 0, 0, 230), font=font)
     # Blur the shadow
-    blurred_shadow = shadow_img.filter(ImageFilter.GaussianBlur(3.0))
+    blurred_shadow = shadow_img.filter(ImageFilter.GaussianBlur(shadow_blur))
     # Paste shadow onto image
     img.alpha_composite(blurred_shadow)
     
     # Draw crisp white text
     draw.text((x, y), text, fill=(255, 255, 255, 255), font=font)
+
 
 def get_font(font_type='regular', size=14):
     try:
@@ -401,7 +437,10 @@ def get_font(font_type='regular', size=14):
 def generate_default_instagram_ui(theme='dark', w=1080, h=1080):
     """
     Procedurally draws a realistic, vector-clean Instagram profile screen.
+    Scales dynamically to support high-resolution templates up to 4K.
     """
+    scale = w / 1080.0
+
     # Colors depending on theme
     if theme == 'dark':
         bg_color = (0, 0, 0, 255)
@@ -426,33 +465,33 @@ def generate_default_instagram_ui(theme='dark', w=1080, h=1080):
     # 2. Draw Top Bar (Header)
     # Profile Username
     username = "invader.ai"
-    font_bold_title = get_font('bold', 34)
-    font_reg_small = get_font('regular', 28)
-    font_bold_small = get_font('bold', 28)
+    font_bold_title = get_font('bold', int(34 * scale))
+    font_reg_small = get_font('regular', int(28 * scale))
+    font_bold_small = get_font('bold', int(28 * scale))
     
     # Draw back arrow chevron: <
-    draw.line([(50, 70), (35, 80), (50, 90)], fill=text_color, width=4)
+    draw.line([(50 * scale, 70 * scale), (35 * scale, 80 * scale), (50 * scale, 90 * scale)], fill=text_color, width=int(4 * scale))
     
     # Draw username text
-    draw.text((80, 60), username, fill=text_color, font=font_bold_title)
+    draw.text((80 * scale, 60 * scale), username, fill=text_color, font=font_bold_title)
     
     # Draw verified badge next to username
     user_width = font_bold_title.getlength(username)
-    badge_x = 80 + user_width + 15
-    badge_y = 65
+    badge_x = 80 * scale + user_width + 15 * scale
+    badge_y = 65 * scale
     # Draw blue circle
-    draw.ellipse([badge_x, badge_y, badge_x + 30, badge_y + 30], fill=accent_blue)
+    draw.ellipse([badge_x, badge_y, badge_x + 30 * scale, badge_y + 30 * scale], fill=accent_blue)
     # Draw white checkmark inside badge
-    draw.line([(badge_x + 9, badge_y + 16), (badge_x + 14, badge_y + 21), (badge_x + 21, badge_y + 12)], fill=(255, 255, 255, 255), width=3)
+    draw.line([(badge_x + 9 * scale, badge_y + 16 * scale), (badge_x + 14 * scale, badge_y + 21 * scale), (badge_x + 21 * scale, badge_y + 12 * scale)], fill=(255, 255, 255, 255), width=int(3 * scale))
     
     # Draw right header buttons (three dots)
-    draw.ellipse([930, 80, 936, 86], fill=text_color)
-    draw.ellipse([950, 80, 956, 86], fill=text_color)
-    draw.ellipse([970, 80, 976, 86], fill=text_color)
+    draw.ellipse([930 * scale, 80 * scale, 936 * scale, 86 * scale], fill=text_color)
+    draw.ellipse([950 * scale, 80 * scale, 956 * scale, 86 * scale], fill=text_color)
+    draw.ellipse([970 * scale, 80 * scale, 976 * scale, 86 * scale], fill=text_color)
     
     # 3. Draw Profile Info Row (Avatar + Stats)
-    avatar_size = 180
-    avatar_x, avatar_y = 60, 160
+    avatar_size = int(180 * scale)
+    avatar_x, avatar_y = int(60 * scale), int(160 * scale)
     
     # Draw avatar circle or load skull placeholder
     avatar_loaded = False
@@ -475,94 +514,94 @@ def generate_default_instagram_ui(theme='dark', w=1080, h=1080):
             
     if not avatar_loaded:
         draw.ellipse([avatar_x, avatar_y, avatar_x + avatar_size, avatar_y + avatar_size], fill=btn_bg)
-        draw.text((avatar_x + 55, avatar_y + 55), "💀", fill=text_color, font=get_font('bold', 48))
-
+        draw.text((avatar_x + int(55 * scale), avatar_y + int(55 * scale)), "💀", fill=text_color, font=get_font('bold', int(48 * scale)))
+ 
     # Stats layout
-    draw.text((440, 190), "42", fill=text_color, font=font_bold_small, anchor="mm")
-    draw.text((690, 190), "1.8M", fill=text_color, font=font_bold_small, anchor="mm")
-    draw.text((920, 190), "248", fill=text_color, font=font_bold_small, anchor="mm")
+    draw.text((440 * scale, 190 * scale), "42", fill=text_color, font=font_bold_small, anchor="mm")
+    draw.text((690 * scale, 190 * scale), "1.8M", fill=text_color, font=font_bold_small, anchor="mm")
+    draw.text((920 * scale, 190 * scale), "248", fill=text_color, font=font_bold_small, anchor="mm")
     
-    font_reg_label = get_font('regular', 24)
-    draw.text((440, 240), "Posts", fill=sec_text_color, font=font_reg_label, anchor="mm")
-    draw.text((690, 240), "Followers", fill=sec_text_color, font=font_reg_label, anchor="mm")
-    draw.text((920, 240), "Following", fill=sec_text_color, font=font_reg_label, anchor="mm")
-
+    font_reg_label = get_font('regular', int(24 * scale))
+    draw.text((440 * scale, 240 * scale), "Posts", fill=sec_text_color, font=font_reg_label, anchor="mm")
+    draw.text((690 * scale, 240 * scale), "Followers", fill=sec_text_color, font=font_reg_label, anchor="mm")
+    draw.text((920 * scale, 240 * scale), "Following", fill=sec_text_color, font=font_reg_label, anchor="mm")
+ 
     # 4. Draw Bio Section
-    bio_y = 370
-    draw.text((60, bio_y), "Instagram Invader AI ⚡", fill=text_color, font=font_bold_small)
-    draw.text((60, bio_y + 40), "Product/Service", fill=sec_text_color, font=font_reg_small)
-    draw.text((60, bio_y + 80), "🤖 Procedural 3D pop-out meme engine", fill=text_color, font=font_reg_small)
-    draw.text((60, bio_y + 120), "🔥 Break through normal social grids", fill=text_color, font=font_reg_small)
-    draw.text((60, bio_y + 160), "👇 Tap INVADE to tear your feed!", fill=text_color, font=font_reg_small)
-    draw.text((60, bio_y + 200), "invader.ai/install", fill=accent_blue, font=font_bold_small)
-
+    bio_y = int(370 * scale)
+    draw.text((60 * scale, bio_y), "Instagram Invader AI ⚡", fill=text_color, font=font_bold_small)
+    draw.text((60 * scale, bio_y + int(40 * scale)), "Product/Service", fill=sec_text_color, font=font_reg_small)
+    draw.text((60 * scale, bio_y + int(80 * scale)), "🤖 Procedural 3D pop-out meme engine", fill=text_color, font=font_reg_small)
+    draw.text((60 * scale, bio_y + int(120 * scale)), "🔥 Break through normal social grids", fill=text_color, font=font_reg_small)
+    draw.text((60 * scale, bio_y + int(160 * scale)), "👇 Tap INVADE to tear your feed!", fill=text_color, font=font_reg_small)
+    draw.text((60 * scale, bio_y + int(200 * scale)), "invader.ai/install", fill=accent_blue, font=font_bold_small)
+ 
     # 5. Buttons Row
-    btn_y = 650
-    btn_w = 460
-    btn_h = 72
-    draw.rounded_rectangle([60, btn_y, 60 + btn_w, btn_y + btn_h], radius=16, fill=accent_blue)
-    draw.text((60 + btn_w // 2, btn_y + btn_h // 2), "Follow", fill=(255,255,255,255), font=font_bold_small, anchor="mm")
+    btn_y = int(650 * scale)
+    btn_w = int(460 * scale)
+    btn_h = int(72 * scale)
+    draw.rounded_rectangle([60 * scale, btn_y, 60 * scale + btn_w, btn_y + btn_h], radius=int(16 * scale), fill=accent_blue)
+    draw.text((60 * scale + btn_w // 2, btn_y + btn_h // 2), "Follow", fill=(255,255,255,255), font=font_bold_small, anchor="mm")
     
-    draw.rounded_rectangle([540, btn_y, 540 + btn_w, btn_y + btn_h], radius=16, fill=btn_bg)
-    draw.text((540 + btn_w // 2, btn_y + btn_h // 2), "Message", fill=btn_text, font=font_bold_small, anchor="mm")
-
+    draw.rounded_rectangle([540 * scale, btn_y, 540 * scale + btn_w, btn_y + btn_h], radius=int(16 * scale), fill=btn_bg)
+    draw.text((540 * scale + btn_w // 2, btn_y + btn_h // 2), "Message", fill=btn_text, font=font_bold_small, anchor="mm")
+ 
     # 6. Highlights Row
-    hl_y = 750
-    hl_r = 130
+    hl_y = int(750 * scale)
+    hl_r = int(130 * scale)
     hl_titles = ["Breaches", "Styles", "Sandbox", "FAQ"]
     hl_emojis = ["⚡", "🎨", "👾", "🚀"]
     
     for i in range(4):
-        cx = 60 + i * (hl_r + 105)
+        cx = int(60 * scale + i * (hl_r + 105 * scale))
         if i < 2:
-            draw.ellipse([cx, hl_y, cx + hl_r, hl_y + hl_r], outline=(255, 20, 147, 255), width=3)
+            draw.ellipse([cx, hl_y, cx + hl_r, hl_y + hl_r], outline=(255, 20, 147, 255), width=int(3 * scale))
         else:
-            draw.ellipse([cx, hl_y, cx + hl_r, hl_y + hl_r], outline=border_color, width=3)
+            draw.ellipse([cx, hl_y, cx + hl_r, hl_y + hl_r], outline=border_color, width=int(3 * scale))
             
-        inner_cx = cx + 8
-        inner_cy = hl_y + 8
-        inner_r = hl_r - 16
+        inner_cx = cx + int(8 * scale)
+        inner_cy = hl_y + int(8 * scale)
+        inner_r = hl_r - int(16 * scale)
         draw.ellipse([inner_cx, inner_cy, inner_cx + inner_r, inner_cy + inner_r], fill=btn_bg)
-        draw.text((inner_cx + inner_r // 2, inner_cy + inner_r // 2), hl_emojis[i], fill=text_color, font=get_font('bold', 40), anchor="mm")
-        draw.text((cx + hl_r // 2, hl_y + hl_r + 25), hl_titles[i], fill=text_color, font=get_font('regular', 22), anchor="mm")
-
+        draw.text((inner_cx + inner_r // 2, inner_cy + inner_r // 2), hl_emojis[i], fill=text_color, font=get_font('bold', int(40 * scale)), anchor="mm")
+        draw.text((cx + hl_r // 2, hl_y + hl_r + int(25 * scale)), hl_titles[i], fill=text_color, font=get_font('regular', int(22 * scale)), anchor="mm")
+ 
     # 7. Tab Bar
-    tab_y = 935
-    tab_h = 80
-    draw.line([(0, tab_y), (w, tab_y)], fill=border_color, width=2)
+    tab_y = int(935 * scale)
+    tab_h = int(80 * scale)
+    draw.line([(0, tab_y), (w, tab_y)], fill=border_color, width=int(2 * scale))
     indicator_w = w // 3
-    draw.line([(0, tab_y + tab_h - 2), (indicator_w, tab_y + tab_h - 2)], fill=text_color, width=4)
+    draw.line([(0, tab_y + tab_h - int(2 * scale)), (indicator_w, tab_y + tab_h - int(2 * scale))], fill=text_color, width=int(4 * scale))
     
     # Draw Grid Icon Tab 1
     grid_cx = indicator_w // 2
     grid_cy = tab_y + tab_h // 2
-    gs = 8
-    gsp = 4
+    gs = int(8 * scale)
+    gsp = int(4 * scale)
     for r in range(3):
         for c in range(3):
-            sx = grid_cx - 16 + c * (gs + gsp)
-            sy = grid_cy - 16 + r * (gs + gsp)
+            sx = grid_cx - int(16 * scale) + c * (gs + gsp)
+            sy = grid_cy - int(16 * scale) + r * (gs + gsp)
             draw.rectangle([sx, sy, sx + gs, sy + gs], fill=text_color)
             
     # Draw Reels Icon Tab 2
     reels_cx = indicator_w + indicator_w // 2
     reels_cy = tab_y + tab_h // 2
-    draw.rectangle([reels_cx - 15, reels_cy - 15, reels_cx + 15, reels_cy + 15], outline=sec_text_color, width=3)
-    draw.line([(reels_cx - 15, reels_cy - 7), (reels_cx + 15, reels_cy - 7)], fill=sec_text_color, width=3)
-    draw.polygon([(reels_cx - 4, reels_cy - 2), (reels_cx - 4, reels_cy + 6), (reels_cx + 5, reels_cy + 2)], fill=sec_text_color)
+    draw.rectangle([reels_cx - int(15 * scale), reels_cy - int(15 * scale), reels_cx + int(15 * scale), reels_cy + int(15 * scale)], outline=sec_text_color, width=int(3 * scale))
+    draw.line([(reels_cx - int(15 * scale), reels_cy - int(7 * scale)), (reels_cx + int(15 * scale), reels_cy - int(7 * scale))], fill=sec_text_color, width=int(3 * scale))
+    draw.polygon([(reels_cx - int(4 * scale), reels_cy - int(2 * scale)), (reels_cx - int(4 * scale), reels_cy + int(6 * scale)), (reels_cx + int(5 * scale), reels_cy + int(2 * scale))], fill=sec_text_color)
     
     # Draw Tagged Icon Tab 3
     tagged_cx = indicator_w * 2 + indicator_w // 2
     tagged_cy = tab_y + tab_h // 2
-    draw.ellipse([tagged_cx - 8, tagged_cy - 14, tagged_cx + 8, tagged_cy - 2], outline=sec_text_color, width=3)
-    draw.arc([tagged_cx - 14, tagged_cy, tagged_cx + 14, tagged_cy + 16], start=180, end=360, fill=sec_text_color, width=3)
-
+    draw.ellipse([tagged_cx - int(8 * scale), tagged_cy - int(14 * scale), tagged_cx + int(8 * scale), tagged_cy - int(2 * scale)], outline=sec_text_color, width=int(3 * scale))
+    draw.arc([tagged_cx - int(14 * scale), tagged_cy, tagged_cx + int(14 * scale), tagged_cy + int(16 * scale)], start=180, end=360, fill=sec_text_color, width=int(3 * scale))
+ 
     # 8. Posts Grid
     grid_start_y = tab_y + tab_h
-    post_size = (w - 12) // 3
+    post_size = (w - int(12 * scale)) // 3
     for i in range(3):
-        px = 3 + i * (post_size + 3)
-        py = grid_start_y + 3
+        px = int(3 * scale) + i * (post_size + int(3 * scale))
+        py = grid_start_y + int(3 * scale)
         post_img = Image.new("RGBA", (post_size, post_size), bg_color)
         p_draw = ImageDraw.Draw(post_img)
         if i == 0:
@@ -578,19 +617,20 @@ def generate_default_instagram_ui(theme='dark', w=1080, h=1080):
                 alpha = int(255 * (y_grad / post_size))
                 p_draw.line([(0, y_grad), (post_size, y_grad)], fill=(0, 240, 255, alpha))
         img.paste(post_img, (px, py), post_img)
-
+ 
     return img
 
-def composite_images(portrait_img, profile_img=None, style='circle', intensity=1.0, meme_text="Hi, I just invaded your Instagram 😂", theme='dark'):
+def composite_images(portrait_img, profile_img=None, style='circle', intensity=1.0, meme_text="Hi, I just invaded your Instagram 😂", theme='dark', target_w=1080):
     """
     Core image processing pipeline.
     Composites the portrait cutout inside a procedural torn paper hole on top of the Instagram profile.
     """
-    if profile_img is None:
-        profile_img = generate_default_instagram_ui(theme, 1080, 1080)
+    scale = target_w / 1080.0
 
-    # 1. Standardize Canvas Size (Instagram post size, target width 1080px)
-    target_w = 1080
+    if profile_img is None:
+        profile_img = generate_default_instagram_ui(theme, target_w, target_w)
+
+    # 1. Standardize Canvas Size (Instagram post size, target width target_w)
     orig_w, orig_h = profile_img.size
     scale_factor = target_w / float(orig_w)
     target_h = int(orig_h * scale_factor)
@@ -622,11 +662,11 @@ def composite_images(portrait_img, profile_img=None, style='circle', intensity=1
         # Draw a thick white path
         for i in range(len(border) - 1):
             p1, p2 = border[i], border[i+1]
-            w_stroke = random.randint(10, 16)
+            w_stroke = random.randint(int(10 * scale), int(16 * scale))
             border_draw.line([p1, p2], fill=(255, 255, 255, 255), width=w_stroke)
             
     # Apply a Gaussian blur and add subtle noise to border to make it fuzzy
-    border_img = border_img.filter(ImageFilter.GaussianBlur(1.2))
+    border_img = border_img.filter(ImageFilter.GaussianBlur(1.2 * scale))
     
     # Add border on top of the paper frame
     paper_frame.alpha_composite(border_img)
@@ -695,7 +735,8 @@ def composite_images(portrait_img, profile_img=None, style='circle', intensity=1
     glow_radius = int(max(canvas_w, canvas_h) * 0.4)
     glow_color = (130, 50, 200, 45) if theme == 'dark' else (50, 150, 250, 30) # Purple glow vs Blue glow
     # Draw radial gradient step-by-step
-    for r_glow in range(glow_radius, 0, -15):
+    glow_step = max(5, int(15 * scale))
+    for r_glow in range(glow_radius, 0, -glow_step):
         alpha = int(glow_color[3] * (1.0 - r_glow / glow_radius))
         glow_draw.ellipse(
             [face_cx - r_glow, face_cy - r_glow, face_cx + r_glow, face_cy + r_glow],
@@ -757,10 +798,12 @@ def composite_images(portrait_img, profile_img=None, style='circle', intensity=1
     # Set alpha to the breakout mask
     bo_shadow_arr = np.zeros((canvas_h, canvas_w, 4), dtype=np.uint8)
     bo_shadow_arr[..., 3] = (np.array(breakout_mask) * 0.55).astype(np.uint8) # shadow strength 55%
-    bo_shadow_img = Image.fromarray(bo_shadow_arr, mode="RGBA").filter(ImageFilter.GaussianBlur(15))
+    bo_blur = max(1, int(15 * scale))
+    bo_shadow_img = Image.fromarray(bo_shadow_arr, mode="RGBA").filter(ImageFilter.GaussianBlur(bo_blur))
     # Offset shadow slightly down and right
+    bo_offset = (int(5 * scale), int(8 * scale))
     offset_bo_shadow = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
-    offset_bo_shadow.paste(bo_shadow_img, (5, 8))
+    offset_bo_shadow.paste(bo_shadow_img, bo_offset)
     # Paste breakout shadow onto composite
     composite.alpha_composite(offset_bo_shadow)
     

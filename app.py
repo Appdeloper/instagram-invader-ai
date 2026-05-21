@@ -52,6 +52,9 @@ def generate():
     if theme not in ['light', 'dark']:
         theme = 'dark'
 
+    resolution = request.form.get('resolution', '1080')
+    target_w = 2160 if resolution == '4k' else 1080
+
     # 3. Read Images into PIL
     try:
         portrait_img = Image.open(portrait_file.stream)
@@ -75,7 +78,8 @@ def generate():
             style=tear_style,
             intensity=intensity,
             meme_text=meme_text,
-            theme=theme
+            theme=theme,
+            target_w=target_w
         )
         
         # Save output to memory

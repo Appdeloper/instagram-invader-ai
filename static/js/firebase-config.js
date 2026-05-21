@@ -14,12 +14,13 @@ if (savedConfig) {
     }
 } else {
     window.firebaseConfig = {
-        apiKey: "YOUR_API_KEY_HERE",
-        authDomain: "YOUR_AUTH_DOMAIN_HERE",
-        projectId: "YOUR_PROJECT_ID_HERE",
-        storageBucket: "YOUR_STORAGE_BUCKET_HERE",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID_HERE",
-        appId: "YOUR_APP_ID_HERE"
+        apiKey: "AIzaSyCx9sKa830lGGPHT2Q35xQHcx7sK1qGkuc",
+        authDomain: "instagram-invader.firebaseapp.com",
+        projectId: "instagram-invader",
+        storageBucket: "instagram-invader.firebasestorage.app",
+        messagingSenderId: "178509157323",
+        appId: "1:178509157323:web:94169cd4431e1b4bd35c4e",
+        measurementId: "G-KN9C5616NR"
     };
 }
 
@@ -28,6 +29,6 @@ const savedAuthMode = localStorage.getItem('invader_auth_mode');
 if (savedAuthMode) {
     window.USE_MOCK_AUTH = (savedAuthMode === 'mock');
 } else {
-    // Default to true (mock) for local testing without keys, or if on GitHub Pages
-    window.USE_MOCK_AUTH = true;
+    // Default to false (Firebase) now that real config is provided
+    window.USE_MOCK_AUTH = false;
 }

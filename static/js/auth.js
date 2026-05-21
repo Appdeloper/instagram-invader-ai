@@ -18,14 +18,18 @@ function initAuthentication() {
     if (!window.USE_MOCK_AUTH) {
         try {
             firebase.initializeApp(window.firebaseConfig);
+            if (typeof firebase.analytics === 'function') {
+                firebase.analytics();
+            }
             
             // Listen to real auth state changes
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
+                    const pendingName = sessionStorage.getItem('invader_pending_display_name');
                     onLoginSuccess({
                         uid: user.uid,
                         email: user.email,
-                        displayName: user.displayName || user.email.split('@')[0],
+                        displayName: user.displayName || pendingName || user.email.split('@')[0],
                         photoURL: user.photoURL || 'static/assets/skull_placeholder.png'
                     });
                 } else {
@@ -159,6 +163,12 @@ function handleEmailLogin(submitBtn = null) {
         return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showAuthAlert('login-alert', 'Please enter a valid email address.', 'error');
+        return;
+    }
+
     setAuthLoading(true, submitBtn);
 
     if (window.USE_MOCK_AUTH) {
@@ -221,9 +231,20 @@ function handleEmailSignup(submitBtn = null) {
         return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showAuthAlert('signup-alert', 'Please enter a valid email address.', 'error');
+        return;
+    }
+
     if (password.length < 6) {
         showAuthAlert('signup-alert', 'Password must be at least 6 characters.', 'error');
         return;
+    }
+
+    // Set pending name for real Firebase sign up profile sync
+    if (!window.USE_MOCK_AUTH) {
+        sessionStorage.setItem('invader_pending_display_name', name);
     }
 
     setAuthLoading(true, submitBtn);
@@ -332,6 +353,9 @@ function onLoginSuccess(user) {
     window.currentUser = user;
     console.log("Logged in user:", user);
 
+    // Remove pending signup display name
+    sessionStorage.removeItem('invader_pending_display_name');
+
     // 1. Set values in user profile header widget
     const userAvatarImg = document.getElementById('user-avatar-img');
     const userNameTxt = document.getElementById('user-name-text');
@@ -354,6 +378,14 @@ function onLoginSuccess(user) {
             authOverlay.classList.remove('fade-out');
         }, 400); // matches CSS transitions
     }
+
+    // 3. Reload and render history for this user
+    if (typeof window.loadHistory === 'function') {
+        window.loadHistory();
+    }
+    if (typeof window.renderHistory === 'function') {
+        window.renderHistory();
+    }
 }
 
 /**
@@ -370,6 +402,14 @@ function onLogoutSuccess() {
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) {
         authOverlay.style.display = 'flex';
+    }
+
+    // Reload and render history for guest user
+    if (typeof window.loadHistory === 'function') {
+        window.loadHistory();
+    }
+    if (typeof window.renderHistory === 'function') {
+        window.renderHistory();
     }
 }
 
