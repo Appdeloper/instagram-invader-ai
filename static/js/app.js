@@ -18,13 +18,23 @@ let scale = 1;
 let canvasW = 0;
 let canvasH = 0;
 
-// Determine API Base URL configuration
 function getApiBaseUrl() {
-    const savedApiUrl = localStorage.getItem('invader_api_url');
+    const hostname = window.location.hostname;
+    let savedApiUrl = localStorage.getItem('invader_api_url');
+    
+    // Auto-migrate: If we are on GitHub Pages (not localhost) and the saved API URL 
+    // points to insecure localhost (which will fail due to Mixed Content), clear it!
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        if (savedApiUrl === 'http://127.0.0.1:5000' || savedApiUrl === 'http://localhost:5000') {
+            localStorage.removeItem('invader_api_url');
+            savedApiUrl = null;
+        }
+    }
+
     if (savedApiUrl !== null) {
         return savedApiUrl;
     }
-    const hostname = window.location.hostname;
+    
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return '';
     } else {
