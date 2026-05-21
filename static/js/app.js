@@ -38,7 +38,7 @@ function getApiBaseUrl() {
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return '';
     } else {
-        return 'https://puny-crews-take.loca.lt';
+        return 'https://angry-pens-push.loca.lt';
     }
 }
 
