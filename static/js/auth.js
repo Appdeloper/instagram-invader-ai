@@ -115,14 +115,16 @@ function setupAuthUIEvents() {
     if (loginFormEl) {
         loginFormEl.addEventListener('submit', (e) => {
             e.preventDefault();
-            handleEmailLogin();
+            const submitBtn = loginFormEl.querySelector('.auth-submit-btn');
+            handleEmailLogin(submitBtn);
         });
     }
 
     if (signupFormEl) {
         signupFormEl.addEventListener('submit', (e) => {
             e.preventDefault();
-            handleEmailSignup();
+            const submitBtn = signupFormEl.querySelector('.auth-submit-btn');
+            handleEmailSignup(submitBtn);
         });
     }
 
@@ -130,7 +132,7 @@ function setupAuthUIEvents() {
     const googleButtons = document.querySelectorAll('.google-signin-btn');
     googleButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            handleGoogleSignIn();
+            handleGoogleSignIn(btn);
         });
     });
 
@@ -146,7 +148,7 @@ function setupAuthUIEvents() {
 /**
  * Handle Login with Email and Password
  */
-function handleEmailLogin() {
+function handleEmailLogin(submitBtn = null) {
     const emailInput = document.getElementById('login-email');
     const passwordInput = document.getElementById('login-password');
     const email = emailInput.value.trim();
@@ -157,7 +159,7 @@ function handleEmailLogin() {
         return;
     }
 
-    setAuthLoading(true);
+    setAuthLoading(true, submitBtn);
 
     if (window.USE_MOCK_AUTH) {
         // Validate against mock database in localStorage
@@ -205,7 +207,7 @@ function handleEmailLogin() {
 /**
  * Handle Registration with Name, Email and Password
  */
-function handleEmailSignup() {
+function handleEmailSignup(submitBtn = null) {
     const nameInput = document.getElementById('signup-name');
     const emailInput = document.getElementById('signup-email');
     const passwordInput = document.getElementById('signup-password');
@@ -224,7 +226,7 @@ function handleEmailSignup() {
         return;
     }
 
-    setAuthLoading(true);
+    setAuthLoading(true, submitBtn);
 
     if (window.USE_MOCK_AUTH) {
         setTimeout(() => {
@@ -275,8 +277,8 @@ function handleEmailSignup() {
 /**
  * Handle Google Single Sign-In
  */
-function handleGoogleSignIn() {
-    setAuthLoading(true);
+function handleGoogleSignIn(btn = null) {
+    setAuthLoading(true, btn);
 
     if (window.USE_MOCK_AUTH) {
         // Trigger a nice mock popup simulation
@@ -397,10 +399,35 @@ function clearAuthAlerts() {
 /**
  * Utility: Show spinner overlay inside forms while waiting
  */
-function setAuthLoading(isLoading) {
+function setAuthLoading(isLoading, targetButton = null) {
     const spinners = document.querySelectorAll('.auth-card-spinner');
     spinners.forEach(s => {
-        if (isLoading) s.classList.remove('hidden');
-        else s.classList.add('hidden');
+        s.classList.add('hidden');
     });
+
+    const submitBtns = document.querySelectorAll('.auth-submit-btn, .google-signin-btn');
+    submitBtns.forEach(btn => {
+        if (isLoading) {
+            btn.setAttribute('disabled', 'true');
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+        } else {
+            btn.removeAttribute('disabled');
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+            const googleLogo = btn.querySelector('img');
+            if (googleLogo) googleLogo.style.display = 'block';
+        }
+    });
+
+    if (isLoading) {
+        if (targetButton) {
+            const spinner = targetButton.querySelector('.auth-card-spinner');
+            if (spinner) spinner.classList.remove('hidden');
+            const googleLogo = targetButton.querySelector('img');
+            if (googleLogo) googleLogo.style.display = 'none';
+        } else {
+            spinners.forEach(s => s.classList.remove('hidden'));
+        }
+    }
 }

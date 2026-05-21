@@ -451,6 +451,7 @@
             <button class="google-signin-btn">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
                 <span>Sign in with Google</span>
+                <div class="auth-card-spinner hidden"></div>
             </button>
         </div>
     </div>
@@ -558,10 +559,18 @@
                 <label class="group-label" for="settings-auth-mode">Authentication Mode</label>
                 <select id="settings-auth-mode" class="custom-textarea settings-select" style="height: auto; padding: 0.8rem; background: rgba(14, 9, 28, 0.8); color: #fff; border: 1px solid var(--border-glass); border-radius: 12px; width: 100%;">
                     <option value="mock">Local Mock Database (No Keys Required)</option>
-                    <option value="firebase">Real Firebase Connection (Set Keys in firebase-config.js)</option>
+                    <option value="firebase">Real Firebase Connection (Configure Keys below)</option>
                 </select>
                 <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.4rem; display: block;">
                     Choose "Local Mock Database" for instant previewing/testing.
+                </small>
+            </div>
+
+            <div class="form-group" id="settings-firebase-group" style="margin-bottom: 1.5rem; display: none;">
+                <label class="group-label" for="settings-firebase-config">Firebase Configuration JSON</label>
+                <textarea id="settings-firebase-config" class="custom-textarea settings-input" style="height: 120px; padding: 0.8rem; font-family: monospace; font-size: 0.8rem; width: 100%; box-sizing: border-box;" placeholder='{&#10;  "apiKey": "...",&#10;  "authDomain": "...",&#10;  "projectId": "...",&#10;  "storageBucket": "...",&#10;  "messagingSenderId": "...",&#10;  "appId": "..."&#10;}'></textarea>
+                <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.4rem; display: block;">
+                    Paste the Firebase Web App config object JSON/code from your Firebase Console.
                 </small>
             </div>
 

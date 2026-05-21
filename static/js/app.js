@@ -787,8 +787,53 @@ function initSettings() {
     const saveBtn = document.getElementById('settings-save-btn');
     const apiUrlInput = document.getElementById('settings-api-url');
     const authModeSelect = document.getElementById('settings-auth-mode');
+    const firebaseGroup = document.getElementById('settings-firebase-group');
+    const firebaseConfigInput = document.getElementById('settings-firebase-config');
 
     if (!modal) return;
+
+    // Helper to extract JSON from raw paste input (handles JSON, JS objects, variable declarations)
+    const parseFirebaseConfig = (input) => {
+        const trimmed = input.trim();
+        if (!trimmed) return null;
+
+        // Try direct JSON parsing
+        try {
+            return JSON.parse(trimmed);
+        } catch (e) {}
+
+        // Match key-value regex to pull from config object format
+        const config = {};
+        const keys = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+        let matchedKeysCount = 0;
+
+        keys.forEach(key => {
+            const regex = new RegExp(`['"]?${key}['"]?\\s*:\\s*['"]([^'"]+)['"]`);
+            const match = trimmed.match(regex);
+            if (match && match[1]) {
+                config[key] = match[1];
+                matchedKeysCount++;
+            }
+        });
+
+        if (matchedKeysCount > 0) {
+            return config;
+        }
+
+        throw new Error("Could not parse config. Check that your configuration contains at least 'apiKey' and 'appId'.");
+    };
+
+    const updateFirebaseGroupVisibility = () => {
+        if (authModeSelect.value === 'firebase') {
+            if (firebaseGroup) firebaseGroup.style.display = 'block';
+        } else {
+            if (firebaseGroup) firebaseGroup.style.display = 'none';
+        }
+    };
+
+    if (authModeSelect) {
+        authModeSelect.addEventListener('change', updateFirebaseGroupVisibility);
+    }
 
     // Helper function to toggle modal
     const toggleModal = (show) => {
@@ -796,6 +841,19 @@ function initSettings() {
             // Load current settings values into inputs
             apiUrlInput.value = localStorage.getItem('invader_api_url') || '';
             authModeSelect.value = localStorage.getItem('invader_auth_mode') || 'mock';
+            
+            const savedFirebaseConfig = localStorage.getItem('invader_firebase_config');
+            if (savedFirebaseConfig && firebaseConfigInput) {
+                try {
+                    firebaseConfigInput.value = JSON.stringify(JSON.parse(savedFirebaseConfig), null, 2);
+                } catch (e) {
+                    firebaseConfigInput.value = savedFirebaseConfig;
+                }
+            } else if (firebaseConfigInput) {
+                firebaseConfigInput.value = '';
+            }
+
+            updateFirebaseGroupVisibility();
             modal.style.display = 'flex';
         } else {
             modal.style.display = 'none';
@@ -825,6 +883,21 @@ function initSettings() {
         saveBtn.addEventListener('click', () => {
             const newUrl = apiUrlInput.value.trim();
             const newAuthMode = authModeSelect.value;
+            let finalFirebaseConfig = null;
+
+            if (newAuthMode === 'firebase' && firebaseConfigInput) {
+                const rawConfigValue = firebaseConfigInput.value.trim();
+                if (!rawConfigValue) {
+                    alert("Please provide your Firebase Configuration parameters for Firebase Auth Mode.");
+                    return;
+                }
+                try {
+                    finalFirebaseConfig = parseFirebaseConfig(rawConfigValue);
+                } catch (err) {
+                    alert("Error parsing Firebase configuration:\n" + err.message + "\n\nPlease copy-paste the exact config block from your Firebase Console.");
+                    return;
+                }
+            }
 
             // Save to localStorage
             if (newUrl) {
@@ -832,7 +905,14 @@ function initSettings() {
             } else {
                 localStorage.removeItem('invader_api_url');
             }
+
             localStorage.setItem('invader_auth_mode', newAuthMode);
+
+            if (newAuthMode === 'firebase' && finalFirebaseConfig) {
+                localStorage.setItem('invader_firebase_config', JSON.stringify(finalFirebaseConfig));
+            } else {
+                localStorage.removeItem('invader_firebase_config');
+            }
 
             // Reload page to apply new configurations
             window.location.reload();
