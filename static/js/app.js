@@ -28,7 +28,7 @@ function getApiBaseUrl() {
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return '';
     } else {
-        return 'http://127.0.0.1:5000';
+        return 'https://puny-crews-take.loca.lt';
     }
 }
 
