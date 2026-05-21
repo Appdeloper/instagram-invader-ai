@@ -37,6 +37,22 @@
                 <button class="utility-icon-btn" title="Settings">
                     <i class="fa-solid fa-gear"></i>
                 </button>
+                
+                <!-- Profile Dropdown Widget -->
+                <div class="profile-widget hidden" id="profile-widget">
+                    <img src="/static/assets/skull_placeholder.png" alt="User Avatar" class="profile-avatar" id="user-avatar-img">
+                    <div class="profile-dropdown glassmorphic">
+                        <div class="dropdown-header">
+                            <span class="user-name" id="user-name-text">Guest User</span>
+                            <span class="user-email" id="user-email-text">guest@example.com</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item logout-btn" id="header-logout-btn">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+                        </button>
+                    </div>
+                </div>
+                
                 <button class="nav-invade-btn" id="nav-invade-btn">Invade</button>
             </div>
         </div>
@@ -358,6 +374,94 @@
             </div>
         </div>
     </footer>
+
+    <!-- Full-screen Authentication Overlay -->
+    <div class="auth-overlay" id="auth-overlay" style="display: none;">
+        <div class="auth-container glassmorphic animate-fade-in">
+            <div class="auth-brand">
+                INSTAGRAM INVADER <span class="accent-glow">AI</span>
+                <p class="auth-subtitle">Unlock the viral 3D cinematic breakout engine</p>
+            </div>
+            
+            <div class="auth-tabs-row">
+                <button class="auth-tab active" data-mode="signin">Sign In</button>
+                <button class="auth-tab" data-mode="signup">Register</button>
+            </div>
+            
+            <!-- Tab 1: Login Form -->
+            <div class="auth-form-wrapper" id="login-form-wrapper">
+                <div class="auth-alert error" id="login-alert" style="display: none;"></div>
+                
+                <form id="login-form" autocomplete="on">
+                    <div class="input-field-group">
+                        <input type="email" id="login-email" required placeholder=" ">
+                        <label for="login-email">Email Address</label>
+                        <i class="fa-regular fa-envelope field-icon"></i>
+                    </div>
+                    
+                    <div class="input-field-group">
+                        <input type="password" id="login-password" required placeholder=" ">
+                        <label for="login-password">Password</label>
+                        <i class="fa-regular fa-lock field-icon"></i>
+                        <button type="button" class="toggle-password-btn" aria-label="Toggle password visibility"><i class="fa-solid fa-eye"></i></button>
+                    </div>
+                    
+                    <button type="submit" class="auth-submit-btn">
+                        <span>Sign In</span>
+                        <div class="auth-card-spinner hidden"></div>
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Tab 2: Signup Form -->
+            <div class="auth-form-wrapper hidden" id="signup-form-wrapper">
+                <div class="auth-alert error" id="signup-alert" style="display: none;"></div>
+                
+                <form id="signup-form" autocomplete="off">
+                    <div class="input-field-group">
+                        <input type="text" id="signup-name" required placeholder=" ">
+                        <label for="signup-name">Full Name</label>
+                        <i class="fa-regular fa-user field-icon"></i>
+                    </div>
+                    
+                    <div class="input-field-group">
+                        <input type="email" id="signup-email" required placeholder=" ">
+                        <label for="signup-email">Email Address</label>
+                        <i class="fa-regular fa-envelope field-icon"></i>
+                    </div>
+                    
+                    <div class="input-field-group">
+                        <input type="password" id="signup-password" required placeholder=" ">
+                        <label for="signup-password">Password (min 6 chars)</label>
+                        <i class="fa-regular fa-lock field-icon"></i>
+                        <button type="button" class="toggle-password-btn" aria-label="Toggle password visibility"><i class="fa-solid fa-eye"></i></button>
+                    </div>
+                    
+                    <button type="submit" class="auth-submit-btn">
+                        <span>Create Account</span>
+                        <div class="auth-card-spinner hidden"></div>
+                    </button>
+                </form>
+            </div>
+            
+            <div class="auth-divider">
+                <span>or continue with</span>
+            </div>
+            
+            <button class="google-signin-btn">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+                <span>Sign in with Google</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Compat Version for Easy Global Script Loading) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <!-- Authentication Configuration & Core logic -->
+    <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 
     <!-- Core Logic Scripts -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>

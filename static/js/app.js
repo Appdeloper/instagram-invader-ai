@@ -50,6 +50,7 @@ function switchTab(tabId) {
     });
 
     activeTab = tabId;
+    window.activeTab = tabId;
 
     // Refresh history grid if entering history tab
     if (tabId === 'history') {
@@ -243,6 +244,16 @@ function initInvadeActions() {
     const triggerInvasion = async () => {
         if (!files.portrait) return;
 
+        // Ensure user is authenticated
+        if (!window.currentUser) {
+            const authOverlay = document.getElementById('auth-overlay');
+            if (authOverlay) {
+                authOverlay.style.display = 'flex';
+            }
+            alert('Please sign in or register to execute the invasion engine.');
+            return;
+        }
+
         // Switch to processing view
         awaitingState.classList.add('hidden');
         successState.classList.add('hidden');
@@ -431,24 +442,38 @@ function resetDragPosition() {
 // 8. Local History Management (using downscaled thumbnail base64 in localStorage)
 let historyItems = [];
 
+function getHistoryKey() {
+    const email = (window.currentUser && window.currentUser.email) ? window.currentUser.email : 'guest';
+    return 'invader_history_' + email.replace(/[^a-zA-Z0-9]/g, '_');
+}
+
 function loadHistory() {
     try {
-        const stored = localStorage.getItem('invader_history');
+        const key = getHistoryKey();
+        const stored = localStorage.getItem(key);
         if (stored) {
             historyItems = JSON.parse(stored);
+        } else {
+            historyItems = [];
         }
     } catch (e) {
         console.error("Failed to load local history", e);
+        historyItems = [];
     }
 }
 
 function saveHistory() {
     try {
-        localStorage.setItem('invader_history', JSON.stringify(historyItems));
+        const key = getHistoryKey();
+        localStorage.setItem(key, JSON.stringify(historyItems));
     } catch (e) {
         console.error("Failed to save history items", e);
     }
 }
+
+// Expose history functions to window so auth.js can reload them on login/logout
+window.loadHistory = loadHistory;
+window.renderHistory = renderHistory;
 
 function addToHistory(blob) {
     const reader = new FileReader();
