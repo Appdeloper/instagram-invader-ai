@@ -769,6 +769,32 @@ input[type="range"]::-webkit-slider-thumb:hover {
     animation: pulseSkull 1.2s infinite ease-in-out;
 }
 
+.loading-percentage-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-outfit), sans-serif;
+    font-weight: 800;
+    font-size: 1.45rem;
+    color: #fff;
+    text-shadow: 0 0 10px var(--accent-pink), 0 0 20px var(--accent-cyan);
+    animation: pulsePercentage 1.5s infinite ease-in-out;
+}
+
+@keyframes pulsePercentage {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1.0);
+        opacity: 0.95;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.06);
+        opacity: 1;
+        text-shadow: 0 0 15px var(--accent-pink), 0 0 25px var(--accent-cyan);
+    }
+}
+
+
 .processing-status-text {
     font-size: 1.3rem;
     margin-bottom: 1.8rem;

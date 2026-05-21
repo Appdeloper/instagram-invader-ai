@@ -322,6 +322,10 @@ function initInvadeActions() {
             return;
         }
 
+        // Save button original contents to restore later
+        const originalInvadeBtnHtml = invadeBtn.innerHTML;
+        const originalHeaderInvadeBtnHtml = headerInvadeBtn.innerHTML;
+
         // Switch to processing view
         awaitingState.classList.add('hidden');
         successState.classList.add('hidden');
@@ -369,11 +373,17 @@ function initInvadeActions() {
         // Start live simulated progress percentage animation
         const progressBarFill = document.getElementById('progress-bar-fill');
         const progressBarPercentage = document.getElementById('progress-bar-percentage');
+        const spinnerPercentage = document.getElementById('spinner-percentage');
         
         if (progressBarFill && progressBarPercentage) {
             progressBarFill.style.width = '0%';
             progressBarPercentage.textContent = '0%';
         }
+        if (spinnerPercentage) {
+            spinnerPercentage.textContent = '0%';
+        }
+        invadeBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> GENERATING... 0%`;
+        headerInvadeBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> 0%`;
         
         let currentProgress = 0;
         const progressInterval = setInterval(() => {
@@ -391,6 +401,11 @@ function initInvadeActions() {
                 progressBarFill.style.width = `${displayProgress}%`;
                 progressBarPercentage.textContent = `${displayProgress}%`;
             }
+            if (spinnerPercentage) {
+                spinnerPercentage.textContent = `${displayProgress}%`;
+            }
+            invadeBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> GENERATING... ${displayProgress}%`;
+            headerInvadeBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${displayProgress}%`;
         }, 120);
 
         try {
@@ -411,6 +426,11 @@ function initInvadeActions() {
                 progressBarFill.style.width = '100%';
                 progressBarPercentage.textContent = '100%';
             }
+            if (spinnerPercentage) {
+                spinnerPercentage.textContent = '100%';
+            }
+            invadeBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> GENERATING... 100%`;
+            headerInvadeBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> 100%`;
 
             if (!response.ok) {
                 const errData = await response.json();
@@ -454,11 +474,15 @@ function initInvadeActions() {
 
         } catch (err) {
             console.error("Invasion pipeline error:", err);
-            // Stop progress bar interval
+            // Stop progress bar interval & timers
+            progressTimers.forEach(clearTimeout);
             clearInterval(progressInterval);
             if (progressBarFill && progressBarPercentage) {
                 progressBarFill.style.width = '0%';
                 progressBarPercentage.textContent = '0%';
+            }
+            if (spinnerPercentage) {
+                spinnerPercentage.textContent = '0%';
             }
             processingState.classList.add('hidden');
             awaitingState.classList.remove('hidden');
@@ -471,6 +495,8 @@ function initInvadeActions() {
                 alert(`Error: ${err.message}`);
             }
         } finally {
+            invadeBtn.innerHTML = originalInvadeBtnHtml;
+            headerInvadeBtn.innerHTML = originalHeaderInvadeBtnHtml;
             checkEnableSubmit();
         }
     };
