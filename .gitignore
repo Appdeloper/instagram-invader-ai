@@ -1,0 +1,20 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment & Logs
+.env
+*.log
+
+# System & IDE Configs
+.gemini/
+.idea/
+.vscode/
+.system_generated/
+*.db
+*.sqlite
+
+# Local assets downloaded on startup
+static/assets/Poppins-Bold.ttf
