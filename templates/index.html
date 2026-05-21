@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Invader AI - Viral Meme Generator</title>
+    <title>Instagram Invader AI - Redefining 3D Breakout Memes</title>
     <!-- Modern typography from Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Core Styling -->
@@ -16,202 +16,347 @@
 <body>
     <div class="glow-bg"></div>
     
-    <header class="app-header">
-        <div class="logo-area">
-            <span class="fire-icon"><i class="fa-solid fa-fire-flame-curved"></i></span>
-            <h1>INSTAGRAM INVADER <span>AI</span></h1>
+    <!-- Top Sleek Header Navbar -->
+    <header class="app-navbar glassmorphic">
+        <div class="navbar-container">
+            <div class="nav-logo" id="logo-trigger">
+                INSTAGRAM INVADER <span class="accent-glow">AI</span>
+            </div>
+            
+            <nav class="nav-tabs">
+                <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+                <button class="tab-btn" data-tab="presets">Presets</button>
+                <button class="tab-btn" data-tab="gallery">Gallery</button>
+                <button class="tab-btn" data-tab="history">History</button>
+            </nav>
+            
+            <div class="nav-utilities">
+                <button class="utility-icon-btn" title="Notifications">
+                    <i class="fa-regular fa-bell"></i>
+                </button>
+                <button class="utility-icon-btn" title="Settings">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <button class="nav-invade-btn" id="nav-invade-btn">Invade</button>
+            </div>
         </div>
-        <p class="tagline">Create hyper-realistic 3D breakout memes. Rip through the feed!</p>
     </header>
 
-    <main class="app-container">
-        <!-- Configuration & Upload Card -->
-        <section class="card upload-card glassmorphic">
-            <h2 class="section-title"><i class="fa-solid fa-sliders"></i> Customize Your Invasion</h2>
-            
-            <form id="generator-form" enctype="multipart/form-data">
-                <!-- Dropzones Group -->
-                <div class="upload-grid">
-                    <!-- Portrait Upload -->
-                    <div class="upload-box" id="portrait-dropzone">
-                        <input type="file" id="portrait-input" name="portrait" accept="image/*" required hidden>
-                        <div class="box-content">
-                            <i class="fa-solid fa-user-tie upload-icon"></i>
-                            <h3>Upload Subject</h3>
-                            <p>Drag & drop or click</p>
-                            <span class="file-info">Portrait photo of a person</span>
-                        </div>
-                        <div class="preview-container hidden">
-                            <img src="" alt="Portrait preview" id="portrait-preview">
-                            <button type="button" class="remove-btn" onclick="removeFile('portrait')">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                    </div>
+    <main class="app-main-content">
+        <!-- ================= DASHBOARD TAB ================= -->
+        <div id="dashboard-tab" class="tab-pane active">
+            <div class="dashboard-grid">
+                <!-- Configuration Card -->
+                <section class="card control-card glassmorphic">
+                    <h2 class="card-title">Customize Your Invasion</h2>
+                    
+                    <form id="generator-form" enctype="multipart/form-data" onsubmit="return false;">
+                        <!-- Upload Section Grid -->
+                        <div class="upload-container">
+                            <!-- Portrait Dropzone -->
+                            <div class="upload-zone" id="portrait-dropzone">
+                                <input type="file" id="portrait-input" name="portrait" accept="image/*" hidden>
+                                <div class="zone-info">
+                                    <i class="fa-regular fa-user zone-icon"></i>
+                                    <h3>Upload Subject</h3>
+                                    <p class="zone-text">Drag & drop or click</p>
+                                </div>
+                                <div class="zone-preview hidden" id="portrait-preview-container">
+                                    <img src="" alt="Subject Preview" id="portrait-preview-img">
+                                    <button type="button" class="remove-upload-btn" onclick="clearUpload('portrait', event)">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Quick Sample Portrait Selector -->
+                                <div class="sample-picker-bar" onclick="event.stopPropagation();">
+                                    <span class="sample-label">Or use sample:</span>
+                                    <div class="sample-thumbs-row">
+                                        <img src="/static/assets/sample_portrait_1.png" class="sample-thumb" alt="Female sample" onclick="loadSamplePortrait('/static/assets/sample_portrait_1.png')">
+                                        <img src="/static/assets/sample_portrait_2.png" class="sample-thumb" alt="Male sample" onclick="loadSamplePortrait('/static/assets/sample_portrait_2.png')">
+                                    </div>
+                                </div>
+                            </div>
 
-                    <!-- Instagram Screenshot Upload -->
-                    <div class="upload-box" id="profile-dropzone">
-                        <input type="file" id="profile-input" name="profile" accept="image/*" required hidden>
-                        <div class="box-content">
-                            <i class="fa-brands fa-instagram upload-icon"></i>
-                            <h3>Upload Instagram UI</h3>
-                            <p>Drag & drop or click</p>
-                            <span class="file-info">Profile / Feed screenshot</span>
-                        </div>
-                        <div class="preview-container hidden">
-                            <img src="" alt="Profile preview" id="profile-preview">
-                            <button type="button" class="remove-btn" onclick="removeFile('profile')">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Customization Controls -->
-                <div class="controls-section">
-                    <!-- Preset Selector -->
-                    <div class="control-group">
-                        <label for="tear-style"><i class="fa-solid fa-scissors"></i> Tear Style Preset</label>
-                        <div class="preset-grid">
-                            <div class="preset-option active" data-style="circle">
-                                <i class="fa-regular fa-circle-dot"></i>
-                                <span>Circle Rip</span>
-                            </div>
-                            <div class="preset-option" data-style="vertical">
-                                <i class="fa-solid fa-arrows-left-right"></i>
-                                <span>Vertical Slit</span>
-                            </div>
-                            <div class="preset-option" data-style="horizontal">
-                                <i class="fa-solid fa-arrows-up-down"></i>
-                                <span>Horizontal Rip</span>
-                            </div>
-                            <div class="preset-option" data-style="diagonal">
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                <span>Diagonal Tear</span>
+                            <!-- Instagram Screenshot Dropzone -->
+                            <div class="upload-zone" id="profile-dropzone">
+                                <input type="file" id="profile-input" name="profile" accept="image/*" hidden>
+                                <div class="zone-info">
+                                    <i class="fa-regular fa-image zone-icon"></i>
+                                    <h3>Upload Instagram UI</h3>
+                                    <p class="zone-text">Drag & drop or click</p>
+                                </div>
+                                <div class="zone-preview hidden" id="profile-preview-container">
+                                    <img src="" alt="Instagram Preview" id="profile-preview-img">
+                                    <button type="button" class="remove-upload-btn" onclick="clearUpload('profile', event)">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <input type="hidden" id="tear_style" name="tear_style" value="circle">
-                    </div>
 
-                    <!-- Meme Text -->
-                    <div class="control-group">
-                        <label for="meme-text"><i class="fa-solid fa-comment-dots"></i> Meme Caption Text</label>
-                        <input type="text" id="meme-text" name="meme_text" value="Hi, I just invaded your Instagram 😂" placeholder="Enter custom message...">
-                    </div>
-
-                    <!-- Sliders & Swaps -->
-                    <div class="controls-row">
-                        <!-- Lighting Intensity -->
-                        <div class="control-group flex-1">
-                            <div class="label-with-value">
-                                <label for="intensity-slider"><i class="fa-solid fa-wand-magic-sparkles"></i> Cinematic Glow</label>
-                                <span class="slider-val" id="intensity-val">100%</span>
-                            </div>
-                            <input type="range" id="intensity-slider" name="intensity" min="0.5" max="2.0" step="0.1" value="1.0">
-                        </div>
-
-                        <!-- Dark/Light Theme -->
-                        <div class="control-group flex-1">
-                            <label><i class="fa-solid fa-palette"></i> Instagram UI Theme</label>
-                            <div class="theme-toggle">
-                                <button type="button" class="theme-btn active" data-theme="dark">
-                                    <i class="fa-solid fa-moon"></i> Dark UI
+                        <!-- Tear Presets Selector -->
+                        <div class="form-group">
+                            <label class="group-label">Preset Tear Styles</label>
+                            <div class="tear-presets-grid">
+                                <button type="button" class="preset-card active" data-preset="circle">
+                                    <i class="fa-regular fa-circle-dot preset-icon"></i>
+                                    <span>Circle Rip</span>
                                 </button>
-                                <button type="button" class="theme-btn" data-theme="light">
-                                    <i class="fa-solid fa-sun"></i> Light UI
+                                <button type="button" class="preset-card" data-preset="vertical">
+                                    <i class="fa-solid fa-arrows-left-right preset-icon"></i>
+                                    <span>Vertical Slit</span>
+                                </button>
+                                <button type="button" class="preset-card" data-preset="horizontal">
+                                    <i class="fa-solid fa-arrows-up-down preset-icon"></i>
+                                    <span>Horizontal Rip</span>
+                                </button>
+                                <button type="button" class="preset-card" data-preset="diagonal">
+                                    <i class="fa-solid fa-arrows-turn-to-dots preset-icon"></i>
+                                    <span>Diagonal Tear</span>
                                 </button>
                             </div>
-                            <input type="hidden" id="theme" name="theme" value="dark">
+                            <input type="hidden" id="tear_style" name="tear_style" value="circle">
                         </div>
-                    </div>
-                </div>
 
-                <!-- Generate Trigger Button -->
-                <button type="submit" class="submit-btn" id="generate-btn" disabled>
-                    <span>INVADE INSTAGRAM <i class="fa-solid fa-bolt"></i></span>
-                </button>
-            </form>
-        </section>
-
-        <!-- Preview & Result Display Card -->
-        <section class="card result-card glassmorphic">
-            <h2 class="section-title"><i class="fa-solid fa-eye"></i> Live Sandbox</h2>
-            
-            <div class="result-workspace">
-                <!-- Sandbox Placeholder (Initial State) -->
-                <div class="sandbox-placeholder" id="placeholder-view">
-                    <div class="interactive-demo-card">
-                        <div class="demo-tear"></div>
-                        <div class="demo-avatar">
-                            <i class="fa-regular fa-face-laugh-beam"></i>
+                        <!-- Caption Input -->
+                        <div class="form-group">
+                            <label class="group-label" for="meme-text">Caption</label>
+                            <textarea id="meme-text" name="meme_text" class="custom-textarea" placeholder="Enter your breach caption..." rows="3">Hi, I just invaded your Instagram 😂</textarea>
                         </div>
-                    </div>
-                    <h3>Upload files to preview the breach</h3>
-                    <p>Both portrait image and Instagram screenshot are required for compositing.</p>
-                </div>
 
-                <!-- Loader View (Processing State) -->
-                <div class="sandbox-loader hidden" id="loader-view">
-                    <div class="spinner-container">
-                        <div class="double-spin"></div>
-                        <i class="fa-solid fa-skull loader-skull"></i>
-                    </div>
-                    <h3 class="loader-status">Initializing Pipeline...</h3>
-                    <ul class="loader-steps">
-                        <li class="step active" id="step-0"><i class="fa-solid fa-circle-check"></i> Reading assets...</li>
-                        <li class="step" id="step-1"><i class="fa-solid fa-circle-notch fa-spin"></i> Isolating subject (rembg)...</li>
-                        <li class="step" id="step-2"><i class="fa-solid fa-circle-notch"></i> Ripping Instagram viewport...</li>
-                        <li class="step" id="step-3"><i class="fa-solid fa-circle-notch"></i> Blending cinematic spotlights...</li>
-                    </ul>
-                </div>
+                        <!-- Sliders & Theme Configuration Row -->
+                        <div class="config-flex-row">
+                            <!-- Cinematic Glow Slider -->
+                            <div class="form-group flex-1">
+                                <div class="flex-label-header">
+                                    <label class="group-label" for="intensity-slider">Cinematic Glow</label>
+                                    <span class="value-readout" id="glow-value">65%</span>
+                                </div>
+                                <div class="slider-wrapper-custom">
+                                    <input type="range" id="intensity-slider" name="intensity" min="0.5" max="2.0" step="0.05" value="1.0">
+                                </div>
+                            </div>
 
-                <!-- Result View (Success State) -->
-                <div class="sandbox-result hidden" id="result-view">
-                    <!-- Before / After Slider -->
-                    <div class="slider-wrapper" id="before-after-slider">
-                        <!-- Before (Instagram Profile) -->
-                        <div class="slide before-slide">
-                            <img src="" alt="Original Profile" id="result-before-img">
-                            <span class="badge before-badge">ORIGINAL SCREENSHOT</span>
-                        </div>
-                        
-                        <!-- After (Composited) -->
-                        <div class="slide after-slide">
-                            <img src="" alt="Invaded Result" id="result-after-img">
-                            <span class="badge after-badge">INVADER BREACH</span>
-                        </div>
-                        
-                        <!-- Resize Handle -->
-                        <div class="slider-handle">
-                            <div class="handle-line"></div>
-                            <div class="handle-button">
-                                <i class="fa-solid fa-arrows-left-right"></i>
+                            <!-- Dark/Light theme Toggle -->
+                            <div class="form-group flex-1">
+                                <label class="group-label">Instagram UI Theme</label>
+                                <div class="theme-switch-pill">
+                                    <button type="button" class="theme-switch-btn active" data-theme="dark">Dark</button>
+                                    <button type="button" class="theme-switch-btn" data-theme="light">Light</button>
+                                </div>
+                                <input type="hidden" id="theme" name="theme" value="dark">
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Action Downloads & Shares -->
-                    <div class="actions-panel">
-                        <button type="button" class="action-btn download-btn" id="download-result-btn">
-                            <i class="fa-solid fa-download"></i> Download PNG
+                        <!-- Invade Trigger Button -->
+                        <button type="button" class="invade-now-btn" id="invade-now-btn" disabled>
+                            <i class="fa-solid fa-bolt"></i> INVADE NOW
                         </button>
-                        
-                        <div class="share-row">
-                            <button type="button" class="action-btn share-btn share-whatsapp" id="share-wa-btn">
-                                <i class="fa-brands fa-whatsapp"></i> WhatsApp
-                            </button>
-                            <button type="button" class="action-btn share-btn share-link" id="share-link-btn">
-                                <i class="fa-solid fa-link"></i> Copy Link
-                            </button>
+                    </form>
+                </section>
+
+                <!-- Sandbox Live Viewer Card -->
+                <section class="card sandbox-card glassmorphic">
+                    <div class="sandbox-inner">
+                        <!-- 1. Awaiting State -->
+                        <div class="sandbox-state active" id="awaiting-state">
+                            <div class="skull-glow-container">
+                                <div class="pink-radial-glow"></div>
+                                <img src="/static/assets/skull_placeholder.png" alt="Awaiting breach" class="awaiting-skull-img">
+                            </div>
+                            <h2 class="awaiting-title">Awaiting Breach Data</h2>
+                            <p class="awaiting-subtitle">Upload assets and click "Invade" to start the process</p>
+                        </div>
+
+                        <!-- 2. Processing Loader State -->
+                        <div class="sandbox-state hidden" id="processing-state">
+                            <div class="loading-animation-container">
+                                <div class="double-circular-spinner"></div>
+                                <i class="fa-solid fa-skull loading-skull-icon"></i>
+                            </div>
+                            <h3 class="processing-status-text">Initializing Engine...</h3>
+                            <ul class="processing-milestones">
+                                <li class="milestone active" id="m-0"><i class="fa-solid fa-circle-check"></i> Launching pipeline...</li>
+                                <li class="milestone" id="m-1"><i class="fa-solid fa-circle-notch"></i> Clipping subject background (rembg)...</li>
+                                <li class="milestone" id="m-2"><i class="fa-solid fa-circle-notch"></i> Ripping canvas vectors...</li>
+                                <li class="milestone" id="m-3"><i class="fa-solid fa-circle-notch"></i> Dressing studio spotlights...</li>
+                            </ul>
+                        </div>
+
+                        <!-- 3. Result Success State -->
+                        <div class="sandbox-state hidden" id="success-state">
+                            <!-- Comparison Slider Frame -->
+                            <div class="comparison-slider-frame" id="comparison-slider">
+                                <!-- Background Image (Before - Original/Default) -->
+                                <div class="comparison-image before-image-pane">
+                                    <img src="" alt="Instagram Viewport" id="result-before-viewport">
+                                    <span class="view-tag original-tag">ORIGINAL</span>
+                                </div>
+                                
+                                <!-- Foreground Image (After - Composited) -->
+                                <div class="comparison-image after-image-pane">
+                                    <img src="" alt="Breached Canvas" id="result-after-viewport">
+                                    <span class="view-tag breach-tag">BREACHED</span>
+                                </div>
+                                
+                                <!-- Split Slider Handle -->
+                                <div class="comparison-drag-bar">
+                                    <div class="drag-vertical-line"></div>
+                                    <div class="drag-thumb">
+                                        <i class="fa-solid fa-arrows-left-right"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Actions Dashboard panel -->
+                            <div class="sandbox-action-panel">
+                                <button type="button" class="sandbox-action-btn download-btn-action" id="download-trigger">
+                                    <i class="fa-solid fa-download"></i> Download PNG
+                                </button>
+                                
+                                <div class="social-share-row">
+                                    <button type="button" class="sandbox-action-btn whatsapp-share-btn" id="wa-share-trigger">
+                                        <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                                    </button>
+                                    <button type="button" class="sandbox-action-btn copy-link-btn" id="copy-share-trigger">
+                                        <i class="fa-solid fa-link"></i> Copy Link
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- ================= PRESETS TAB ================= -->
+        <div id="presets-tab" class="tab-pane hidden">
+            <section class="card glassmorphic presets-showcase-card">
+                <h2 class="section-heading-custom">Available Tear Presets</h2>
+                <p class="section-subtext-custom">Select a style template to apply to your generator configuration.</p>
+                
+                <div class="presets-gallery-grid">
+                    <div class="preset-gallery-card" data-preset="circle">
+                        <div class="preset-card-visual bg-circle-tear">
+                            <div class="demo-tear-shape shape-circle"></div>
+                        </div>
+                        <div class="preset-card-details">
+                            <h3>Circle Rip</h3>
+                            <p>An organic jagged circular opening centered on the subject. Gives a dramatic portal pop-out effect.</p>
+                            <button class="apply-preset-btn">Select Style</button>
+                        </div>
+                    </div>
+
+                    <div class="preset-gallery-card" data-preset="vertical">
+                        <div class="preset-card-visual bg-vertical-tear">
+                            <div class="demo-tear-shape shape-vertical"></div>
+                        </div>
+                        <div class="preset-card-details">
+                            <h3>Vertical Slit</h3>
+                            <p>A rip split running down the middle of the feed, causing the subject to step out between two page halves.</p>
+                            <button class="apply-preset-btn">Select Style</button>
+                        </div>
+                    </div>
+
+                    <div class="preset-gallery-card" data-preset="horizontal">
+                        <div class="preset-card-visual bg-horizontal-tear">
+                            <div class="demo-tear-shape shape-horizontal"></div>
+                        </div>
+                        <div class="preset-card-details">
+                            <h3>Horizontal Rip</h3>
+                            <p>Tears a window horizontally across the middle of the Instagram page screen. Perfect for landscape overlays.</p>
+                            <button class="apply-preset-btn">Select Style</button>
+                        </div>
+                    </div>
+
+                    <div class="preset-gallery-card" data-preset="diagonal">
+                        <div class="preset-card-visual bg-diagonal-tear">
+                            <div class="demo-tear-shape shape-diagonal"></div>
+                        </div>
+                        <div class="preset-card-details">
+                            <h3>Diagonal Tear</h3>
+                            <p>Rips across from the top left corner to the bottom right corner, dividing the feed diagonally.</p>
+                            <button class="apply-preset-btn">Select Style</button>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        </div>
+
+        <!-- ================= GALLERY TAB ================= -->
+        <div id="gallery-tab" class="tab-pane hidden">
+            <section class="card glassmorphic gallery-showcase-card">
+                <h2 class="section-heading-custom">Inspiration Gallery</h2>
+                <p class="section-subtext-custom">Take a look at what other creators are generating. Click any template to inspect.</p>
+                
+                <div class="gallery-showcase-grid">
+                    <div class="gallery-card-item">
+                        <div class="gallery-card-image-wrap">
+                            <img src="/static/assets/gallery_1.png" alt="Gallery Breach 1" class="gallery-img">
+                            <div class="gallery-overlay">
+                                <a href="/static/assets/gallery_1.png" download="invader_gallery_1.png" class="gallery-download-icon"><i class="fa-solid fa-download"></i></a>
+                            </div>
+                        </div>
+                        <div class="gallery-card-footer">
+                            <h4>Circle Breach</h4>
+                            <span>Theme: Dark UI</span>
+                        </div>
+                    </div>
+
+                    <div class="gallery-card-item">
+                        <div class="gallery-card-image-wrap">
+                            <img src="/static/assets/gallery_2.png" alt="Gallery Breach 2" class="gallery-img">
+                            <div class="gallery-overlay">
+                                <a href="/static/assets/gallery_2.png" download="invader_gallery_2.png" class="gallery-download-icon"><i class="fa-solid fa-download"></i></a>
+                            </div>
+                        </div>
+                        <div class="gallery-card-footer">
+                            <h4>Vertical Rip</h4>
+                            <span>Theme: Light UI</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= HISTORY TAB ================= -->
+        <div id="history-tab" class="tab-pane hidden">
+            <section class="card glassmorphic history-showcase-card">
+                <div class="history-card-header">
+                    <div>
+                        <h2 class="section-heading-custom">Breach History</h2>
+                        <p class="section-subtext-custom">Your local generated breaches. Saved directly in your browser.</p>
+                    </div>
+                    <button class="clear-history-btn" id="clear-history-btn"><i class="fa-solid fa-trash-can"></i> Clear History</button>
+                </div>
+                
+                <!-- Empty State -->
+                <div class="history-empty-state" id="history-empty-state">
+                    <i class="fa-solid fa-clock-rotate-left empty-history-icon"></i>
+                    <h3>No breach history found</h3>
+                    <p>Go back to the Dashboard and create your first Instagram Invader!</p>
+                    <button class="go-dashboard-btn" onclick="switchTab('dashboard')">Go to Dashboard</button>
+                </div>
+
+                <!-- History Grid -->
+                <div class="history-grid-container hidden" id="history-grid-container">
+                    <div class="history-grid" id="history-items-grid">
+                        <!-- History Items go here dynamically -->
+                    </div>
+                </div>
+            </section>
+        </div>
     </main>
 
     <footer class="app-footer">
-        <p>Built with ❤️ using Python Flask + OpenCV + rembg. Zero data stored on server.</p>
+        <div class="footer-container">
+            <p>&copy; 2026 Instagram Invader AI. Powered by Flask, Pillow & rembg. Zero user logs stored on disk.</p>
+            <div class="footer-links">
+                <a href="#"><i class="fa-brands fa-github"></i> GitHub</a>
+                <a href="#"><i class="fa-solid fa-shield-halved"></i> Privacy Policy</a>
+            </div>
+        </div>
     </footer>
 
     <!-- Core Logic Scripts -->

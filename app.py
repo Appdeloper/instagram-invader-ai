@@ -22,17 +22,18 @@ def generate():
     # 1. Validation Checks
     if 'portrait' not in request.files:
         return jsonify({'error': 'Missing portrait image'}), 400
-    if 'profile' not in request.files:
-        return jsonify({'error': 'Missing Instagram profile image'}), 400
         
     portrait_file = request.files['portrait']
-    profile_file = request.files['profile']
-    
-    if portrait_file.filename == '' or profile_file.filename == '':
-        return jsonify({'error': 'No selected files'}), 400
+    if portrait_file.filename == '':
+        return jsonify({'error': 'No selected portrait file'}), 400
         
-    if not (allowed_file(portrait_file.filename) and allowed_file(profile_file.filename)):
-        return jsonify({'error': 'Invalid image format. Supported formats: PNG, JPG, JPEG, WEBP'}), 400
+    if not allowed_file(portrait_file.filename):
+        return jsonify({'error': 'Invalid portrait image format. Supported formats: PNG, JPG, JPEG, WEBP'}), 400
+
+    profile_file = request.files.get('profile')
+    profile_has_file = profile_file and profile_file.filename != ''
+    if profile_has_file and not allowed_file(profile_file.filename):
+        return jsonify({'error': 'Invalid profile image format. Supported formats: PNG, JPG, JPEG, WEBP'}), 400
 
     # 2. Extract Options
     tear_style = request.form.get('tear_style', 'circle')
@@ -56,11 +57,13 @@ def generate():
     except Exception as e:
         return jsonify({'error': f'Failed to parse portrait image: {str(e)}'}), 400
         
-    try:
-        profile_img = Image.open(profile_file.stream)
-        profile_img.load() # Load image data
-    except Exception as e:
-        return jsonify({'error': f'Failed to parse profile image: {str(e)}'}), 400
+    profile_img = None
+    if profile_has_file:
+        try:
+            profile_img = Image.open(profile_file.stream)
+            profile_img.load() # Load image data
+        except Exception as e:
+            return jsonify({'error': f'Failed to parse profile image: {str(e)}'}), 400
 
     # 4. Run Processing Pipeline
     try:

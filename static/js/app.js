@@ -1,48 +1,86 @@
-// Files State
+// Global Application State
 let files = {
     portrait: null,
     profile: null
 };
 
-// Generated image blob URL holder
 let resultBlobUrl = null;
+let activeTab = 'dashboard';
 
-// Initialize on DOM load
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    initTabNavigation();
     initUploadDropzones();
     initPresets();
-    initThemeToggle();
-    initSliders();
-    initFormSubmit();
-    initBeforeAfterSlider();
+    initThemeSwitch();
+    initGlowSlider();
+    initInvadeActions();
+    initComparisonSlider();
+    loadHistory();
 });
 
-// 1. Upload Dropzone Handling
+// 1. Tab Navigation
+function initTabNavigation() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.tab;
+            switchTab(targetTab);
+        });
+    });
+
+    // Logo click goes back to Dashboard
+    document.getElementById('logo-trigger').addEventListener('click', () => {
+        switchTab('dashboard');
+    });
+}
+
+function switchTab(tabId) {
+    if (activeTab === tabId) return;
+    
+    // Deactivate current tab
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tabId) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+    
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+        if (pane.id === `${tabId}-tab`) pane.classList.remove('hidden');
+        else pane.classList.add('hidden');
+    });
+
+    activeTab = tabId;
+
+    // Refresh history grid if entering history tab
+    if (tabId === 'history') {
+        renderHistory();
+    }
+}
+
+// 2. Drag & Drop Upload Handlers
 function initUploadDropzones() {
-    const dropzones = [
+    const zones = [
         { type: 'portrait', zoneId: 'portrait-dropzone', inputId: 'portrait-input' },
         { type: 'profile', zoneId: 'profile-dropzone', inputId: 'profile-input' }
     ];
 
-    dropzones.forEach(({ type, zoneId, inputId }) => {
+    zones.forEach(({ type, zoneId, inputId }) => {
         const zone = document.getElementById(zoneId);
         const input = document.getElementById(inputId);
 
-        // Click to open file browser
         zone.addEventListener('click', (e) => {
-            // Prevent recursive click if clicking close button
-            if (e.target.closest('.remove-btn')) return;
+            // Prevent trigger if click was on remove button or sample picker
+            if (e.target.closest('.remove-upload-btn') || e.target.closest('.sample-picker-bar')) return;
             input.click();
         });
 
-        // File change
         input.addEventListener('change', () => {
             if (input.files.length > 0) {
-                handleFile(input.files[0], type);
+                handleUploadedFile(input.files[0], type);
             }
         });
 
-        // Drag & drop events
+        // Drag events
         ['dragenter', 'dragover'].forEach(eventName => {
             zone.addEventListener(eventName, (e) => {
                 e.preventDefault();
@@ -63,143 +101,182 @@ function initUploadDropzones() {
             const dt = e.dataTransfer;
             const file = dt.files[0];
             if (file && file.type.startsWith('image/')) {
-                input.files = dt.files; // assign to input
-                handleFile(file, type);
+                input.files = dt.files;
+                handleUploadedFile(file, type);
             }
         }, false);
     });
 }
 
-function handleFile(file, type) {
+function handleUploadedFile(file, type) {
     files[type] = file;
-    
-    // Read and display preview
+
     const reader = new FileReader();
     reader.onload = (e) => {
-        const previewImg = document.getElementById(`${type}-preview`);
-        const previewContainer = previewImg.parentElement;
+        const previewContainer = document.getElementById(`${type}-preview-container`);
+        const previewImg = document.getElementById(`${type}-preview-img`);
         
         previewImg.src = e.target.result;
         previewContainer.classList.remove('hidden');
-        
-        // If profile image is updated, also load it into the Before image slider
+
+        // Feed original preview into comparison slider
         if (type === 'profile') {
-            document.getElementById('result-before-img').src = e.target.result;
+            document.getElementById('result-before-viewport').src = e.target.result;
         }
 
-        checkEnableGenerate();
+        checkEnableSubmit();
     };
     reader.readAsDataURL(file);
 }
 
-function removeFile(type) {
+function clearUpload(type, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
     files[type] = null;
     document.getElementById(`${type}-input`).value = '';
-    
-    const previewImg = document.getElementById(`${type}-preview`);
-    const previewContainer = previewImg.parentElement;
-    
-    previewImg.src = '';
-    previewContainer.classList.add('hidden');
-    
-    checkEnableGenerate();
+    document.getElementById(`${type}-preview-img`).src = '';
+    document.getElementById(`${type}-preview-container`).classList.add('hidden');
+
+    if (type === 'profile') {
+        document.getElementById('result-before-viewport').src = '';
+    }
+
+    checkEnableSubmit();
 }
 
-function checkEnableGenerate() {
-    const btn = document.getElementById('generate-btn');
-    if (files.portrait && files.profile) {
-        btn.removeAttribute('disabled');
-    } else {
-        btn.setAttribute('disabled', 'true');
+// Loads a sample portrait from the assets
+async function loadSamplePortrait(url) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const file = new File([blob], "sample_portrait.png", { type: "image/png" });
+        handleUploadedFile(file, 'portrait');
+    } catch (e) {
+        console.error("Failed to load sample portrait: ", e);
     }
 }
 
-// 2. Tear Preset Selection
+function checkEnableSubmit() {
+    const invadeBtn = document.getElementById('invade-now-btn');
+    const headerBtn = document.getElementById('nav-invade-btn');
+    
+    // Only portrait is strictly required now! Profile is optional.
+    if (files.portrait) {
+        invadeBtn.removeAttribute('disabled');
+        headerBtn.removeAttribute('disabled');
+    } else {
+        invadeBtn.setAttribute('disabled', 'true');
+        headerBtn.setAttribute('disabled', 'true');
+    }
+}
+
+// 3. Tear Presets selector
 function initPresets() {
-    const options = document.querySelectorAll('.preset-option');
-    const hiddenInput = document.getElementById('tear_style');
+    const presetCards = document.querySelectorAll('.preset-card');
+    const styleInput = document.getElementById('tear_style');
 
-    options.forEach(opt => {
-        opt.addEventListener('click', () => {
-            options.forEach(o => o.classList.remove('active'));
-            opt.classList.add('active');
-            hiddenInput.value = opt.dataset.style;
+    presetCards.forEach(card => {
+        card.addEventListener('click', () => {
+            presetCards.forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            styleInput.value = card.dataset.preset;
+        });
+    });
+
+    // Presets showcase page cards click handler
+    const showcaseCards = document.querySelectorAll('.preset-gallery-card');
+    showcaseCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const presetType = card.dataset.preset;
+            
+            // Set active state on dashboard selector
+            presetCards.forEach(c => {
+                if (c.dataset.preset === presetType) c.classList.add('active');
+                else c.classList.remove('active');
+            });
+            styleInput.value = presetType;
+            
+            // Direct to dashboard
+            switchTab('dashboard');
         });
     });
 }
 
-// 3. Theme toggle
-function initThemeToggle() {
-    const buttons = document.querySelectorAll('.theme-btn');
-    const hiddenInput = document.getElementById('theme');
+// 4. Dark/Light Theme Switches
+function initThemeSwitch() {
+    const btns = document.querySelectorAll('.theme-switch-btn');
+    const themeInput = document.getElementById('theme');
 
-    buttons.forEach(btn => {
+    btns.forEach(btn => {
         btn.addEventListener('click', () => {
-            buttons.forEach(b => b.classList.remove('active'));
+            btns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            hiddenInput.value = btn.dataset.theme;
+            themeInput.value = btn.dataset.theme;
         });
     });
 }
 
-// 4. Sliders and text value feedback
-function initSliders() {
+// 5. Glow intensity Slider
+function initGlowSlider() {
     const slider = document.getElementById('intensity-slider');
-    const valueLabel = document.getElementById('intensity-val');
+    const valueLabel = document.getElementById('glow-value');
 
     slider.addEventListener('input', (e) => {
-        valueLabel.textContent = `${Math.round(e.target.value * 100)}%`;
+        valueLabel.textContent = `${Math.round(e.target.value * 65)}%`; // Scaled to read nicely around 65%-100%
     });
 }
 
-// 5. Submit Form & Handle Processing States
-function initFormSubmit() {
+// 6. Invade Trigger action pipeline
+function initInvadeActions() {
     const form = document.getElementById('generator-form');
-    const generateBtn = document.getElementById('generate-btn');
-    
-    const placeholderView = document.getElementById('placeholder-view');
-    const loaderView = document.getElementById('loader-view');
-    const resultView = document.getElementById('result-view');
-    const statusText = document.querySelector('.loader-status');
+    const invadeBtn = document.getElementById('invade-now-btn');
+    const headerInvadeBtn = document.getElementById('nav-invade-btn');
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!files.portrait || !files.profile) return;
+    const awaitingState = document.getElementById('awaiting-state');
+    const processingState = document.getElementById('processing-state');
+    const successState = document.getElementById('success-state');
+    const statusText = document.querySelector('.processing-status-text');
 
-        // Switch to loader view
-        placeholderView.classList.add('hidden');
-        resultView.classList.add('hidden');
-        loaderView.classList.remove('hidden');
-        generateBtn.setAttribute('disabled', 'true');
+    const triggerInvasion = async () => {
+        if (!files.portrait) return;
 
-        // Reset loader steps
-        resetLoaderSteps();
-        
-        // Step 0: Initializing
-        updateLoaderStep(0, 'active');
-        statusText.textContent = "Spinning up Flask engine...";
+        // Switch to processing view
+        awaitingState.classList.add('hidden');
+        successState.classList.add('hidden');
+        processingState.classList.remove('hidden');
+        invadeBtn.setAttribute('disabled', 'true');
+        headerInvadeBtn.setAttribute('disabled', 'true');
 
-        // Assemble Form Payload
+        resetMilestones();
+        updateMilestone(0, 'active');
+        statusText.textContent = "Booting processing pipelines...";
+
         const formData = new FormData(form);
-        
-        // Timing-based dummy step transitions to keep UX engaged
-        // In real execution, these complete when backend returns. We update them dynamically.
-        const stepIntervals = [
+        formData.append('portrait', files.portrait);
+        if (files.profile) {
+            formData.append('profile', files.profile);
+        }
+
+        // Timer intervals for mock loading states
+        const progressTimers = [
             setTimeout(() => {
-                updateLoaderStep(0, 'completed');
-                updateLoaderStep(1, 'active');
-                statusText.textContent = "Removing background from portrait (rembg)...";
-            }, 1000),
+                updateMilestone(0, 'completed');
+                updateMilestone(1, 'active');
+                statusText.textContent = "Isolating subject background (rembg)...";
+            }, 1200),
             setTimeout(() => {
-                updateLoaderStep(1, 'completed');
-                updateLoaderStep(2, 'active');
-                statusText.textContent = "Procedurally ripping Instagram screenshot...";
-            }, 3000),
+                updateMilestone(1, 'completed');
+                updateMilestone(2, 'active');
+                statusText.textContent = "Procedurally drawing Instagram vectors...";
+            }, 3500),
             setTimeout(() => {
-                updateLoaderStep(2, 'completed');
-                updateLoaderStep(3, 'active');
-                statusText.textContent = "Applying cinematic studio lighting & overlays...";
-            }, 5500)
+                updateMilestone(2, 'completed');
+                updateMilestone(3, 'active');
+                statusText.textContent = "Adjusting spotlights and depth of field...";
+            }, 6000)
         ];
 
         try {
@@ -208,159 +285,302 @@ function initFormSubmit() {
                 body: formData
             });
 
-            // Cancel intervals
-            stepIntervals.forEach(clearTimeout);
+            // Stop animations
+            progressTimers.forEach(clearTimeout);
 
             if (!response.ok) {
                 const errData = await response.json();
-                throw new Error(errData.error || 'Server error occurred during generation.');
+                throw new Error(errData.error || 'Pipeline execution failed on server.');
             }
 
-            // Successfully received binary PNG blob
             const blob = await response.blob();
             
-            // Cleanup previous Object URL if exists
             if (resultBlobUrl) {
                 URL.revokeObjectURL(resultBlobUrl);
             }
-            
             resultBlobUrl = URL.createObjectURL(blob);
-            
-            // Set Result Image
-            const resultAfterImg = document.getElementById('result-after-img');
-            resultAfterImg.src = resultBlobUrl;
-            
-            // Trigger complete styling on loader steps
-            updateLoaderStep(0, 'completed');
-            updateLoaderStep(1, 'completed');
-            updateLoaderStep(2, 'completed');
-            updateLoaderStep(3, 'completed');
-            statusText.textContent = "Composite complete!";
 
-            // Delay showing results slightly to let user see completion state
+            // Populate success views
+            document.getElementById('result-after-viewport').src = resultBlobUrl;
+            
+            // If profile was not uploaded, set default preview base in comparison
+            if (!files.profile) {
+                // If light theme is active, background is white, else dark black
+                const activeTheme = document.getElementById('theme').value;
+                document.getElementById('result-before-viewport').src = activeTheme === 'light' 
+                    ? '/static/assets/sample_portrait_1.png' // Or simple default UI
+                    : '/static/assets/skull_placeholder.png';
+            }
+
+            updateMilestone(0, 'completed');
+            updateMilestone(1, 'completed');
+            updateMilestone(2, 'completed');
+            updateMilestone(3, 'completed');
+            statusText.textContent = "Breach successful!";
+
+            // Delay presentation to showcase milestones
             setTimeout(() => {
-                loaderView.classList.add('hidden');
-                resultView.classList.remove('hidden');
-                resetSliderPosition();
-            }, 600);
+                processingState.classList.add('hidden');
+                successState.classList.remove('hidden');
+                resetDragPosition();
+                
+                // Add to history list
+                addToHistory(blob);
+            }, 800);
 
-        } catch (error) {
-            alert(`Oops: ${error.message}`);
-            // Fallback back to placeholder
-            loaderView.classList.add('hidden');
-            placeholderView.classList.remove('hidden');
+        } catch (err) {
+            alert(`Error: ${err.message}`);
+            processingState.classList.add('hidden');
+            awaitingState.classList.remove('hidden');
         } finally {
-            checkEnableGenerate();
+            checkEnableSubmit();
         }
-    });
+    };
 
-    // Share & Copy buttons
-    document.getElementById('download-result-btn').addEventListener('click', () => {
+    invadeBtn.addEventListener('click', triggerInvasion);
+    headerInvadeBtn.addEventListener('click', triggerInvasion);
+
+    // Bind action panel downloads
+    document.getElementById('download-trigger').addEventListener('click', () => {
         if (!resultBlobUrl) return;
         const a = document.createElement('a');
         a.href = resultBlobUrl;
-        a.download = 'instagram_invader.png';
+        a.download = 'instagram_invaded_breach.png';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
     });
 
-    document.getElementById('share-wa-btn').addEventListener('click', () => {
-        const text = encodeURIComponent("Check out this hyper-realistic Instagram Invader AI meme I just generated! 🔥");
+    document.getElementById('wa-share-trigger').addEventListener('click', () => {
+        const text = encodeURIComponent("Check out this 3D Instagram pop-out meme I created using Instagram Invader AI! ⚡");
         window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
     });
 
-    document.getElementById('share-link-btn').addEventListener('click', (e) => {
-        navigator.clipboard.writeText(window.location.href).then(() => {
-            const originalText = e.target.innerHTML;
-            e.target.innerHTML = '<i class="fa-solid fa-check"></i> Link Copied!';
-            setTimeout(() => {
-                e.target.innerHTML = originalText;
-            }, 2000);
+    document.getElementById('copy-share-trigger').addEventListener('click', (e) => {
+        navigator.clipboard.writeText(window.location.origin).then(() => {
+            const btn = document.getElementById('copy-share-trigger');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+            setTimeout(() => btn.innerHTML = orig, 2000);
         });
     });
 }
 
-function resetLoaderSteps() {
+function resetMilestones() {
     for (let i = 0; i <= 3; i++) {
-        const el = document.getElementById(`step-${i}`);
-        el.className = 'step';
-        const icon = el.querySelector('i');
-        icon.className = i === 0 ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-notch';
+        const el = document.getElementById(`m-${i}`);
+        el.className = 'milestone';
+        el.querySelector('i').className = 'fa-solid fa-circle-notch';
     }
 }
 
-function updateLoaderStep(index, state) {
-    const el = document.getElementById(`step-${index}`);
+function updateMilestone(index, state) {
+    const el = document.getElementById(`m-${index}`);
     if (!el) return;
 
     if (state === 'active') {
-        el.className = 'step active';
+        el.className = 'milestone active';
         el.querySelector('i').className = 'fa-solid fa-circle-notch fa-spin';
     } else if (state === 'completed') {
-        el.className = 'step completed';
+        el.className = 'milestone completed';
         el.querySelector('i').className = 'fa-solid fa-circle-check';
     }
 }
 
-// 6. Before / After Image Comparison Slider Interactivity
-let isDraggingSlider = false;
+// 7. Comparison Slider Logic
+let isDragging = false;
 
-function initBeforeAfterSlider() {
-    const slider = document.getElementById('before-after-slider');
-    const handle = slider.querySelector('.slider-handle');
-    const afterSlide = slider.querySelector('.after-slide');
+function initComparisonSlider() {
+    const slider = document.getElementById('comparison-slider');
+    const handle = slider.querySelector('.comparison-drag-bar');
+    const afterPane = slider.querySelector('.after-image-pane');
 
-    const dragStart = () => { isDraggingSlider = true; };
-    const dragEnd = () => { isDraggingSlider = false; };
+    const onStart = () => { isDragging = true; };
+    const onEnd = () => { isDragging = false; };
 
-    // Mouse Events
-    handle.addEventListener('mousedown', dragStart);
-    window.addEventListener('mouseup', dragEnd);
-    window.addEventListener('mousemove', (e) => dragMove(e, slider, afterSlide, handle));
+    handle.addEventListener('mousedown', onStart);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('mousemove', (e) => handleDrag(e, slider, afterPane, handle));
 
-    // Touch Events
-    handle.addEventListener('touchstart', dragStart);
-    window.addEventListener('touchend', dragEnd);
-    window.addEventListener('touchmove', (e) => dragMove(e.touches[0], slider, afterSlide, handle));
+    handle.addEventListener('touchstart', onStart);
+    window.addEventListener('touchend', onEnd);
+    window.addEventListener('touchmove', (e) => handleDrag(e.touches[0], slider, afterPane, handle));
 }
 
-function dragMove(e, slider, afterSlide, handle) {
-    if (!isDraggingSlider) return;
+function handleDrag(e, slider, afterPane, handle) {
+    if (!isDragging) return;
 
     const rect = slider.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    
-    // Bound slider percent between 0% and 100%
-    let percentage = (x / rect.width) * 100;
-    percentage = Math.max(0, Math.min(percentage, 100));
+    let percent = (x / rect.width) * 100;
+    percent = Math.max(0, Math.min(percent, 100));
 
-    // Update clipping width & handle position
-    // Because after-slide overlays before-slide, we adjust the width of the overlay layer
-    // Let the after-slide stretch from 0 to the divider. Since it sits on top,
-    // if the percentage is 60%, the width of after-slide is 60% (showing left 60% as After, and right 40% as Before).
-    // Wait, let's reverse it so left is Before (Original) and right is After (Composited) OR vice-versa.
-    // In style.css, before-slide is z-index 1 (always back) and after-slide is z-index 2 (front, width: 50%).
-    // So after-slide is the one that gets clipped. Since it sits on the left side, if it is 60% width,
-    // it covers the left 60% of before-slide. That means left 60% is AFTER, right 40% is BEFORE.
-    // To make it feel natural, we can map:
-    // Left side = BEFORE (Original screenshot), Right side = AFTER (Breached).
-    // Wait! If after-slide is on top, and its width is 50%, it covers the left half.
-    // If after-slide is the AFTER (Breached) image, it shows on the left, and BEFORE on the right.
-    // Let's check the HTML:
-    // `.before-slide` contains the original image.
-    // `.after-slide` contains the result.
-    // If `.after-slide` is on top and has `width: 50%`, the left 50% is After (breached), right 50% is Before (original).
-    // That means the user sees the Breach on the left and the Original on the right. That works perfectly!
-    afterSlide.style.width = `${percentage}%`;
-    handle.style.left = `${percentage}%`;
+    afterPane.style.width = `${percent}%`;
+    handle.style.left = `${percent}%`;
 }
 
-function resetSliderPosition() {
-    const slider = document.getElementById('before-after-slider');
-    const handle = slider.querySelector('.slider-handle');
-    const afterSlide = slider.querySelector('.after-slide');
-    
-    afterSlide.style.width = '50%';
+function resetDragPosition() {
+    const slider = document.getElementById('comparison-slider');
+    const handle = slider.querySelector('.comparison-drag-bar');
+    const afterPane = slider.querySelector('.after-image-pane');
+
+    afterPane.style.width = '50%';
     handle.style.left = '50%';
 }
+
+// 8. Local History Management (using downscaled thumbnail base64 in localStorage)
+let historyItems = [];
+
+function loadHistory() {
+    try {
+        const stored = localStorage.getItem('invader_history');
+        if (stored) {
+            historyItems = JSON.parse(stored);
+        }
+    } catch (e) {
+        console.error("Failed to load local history", e);
+    }
+}
+
+function saveHistory() {
+    try {
+        localStorage.setItem('invader_history', JSON.stringify(historyItems));
+    } catch (e) {
+        console.error("Failed to save history items", e);
+    }
+}
+
+function addToHistory(blob) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            // Create a small thumbnail to preserve localStorage quota
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const maxDim = 320;
+            let w = img.width;
+            let h = img.height;
+            if (w > h) {
+                if (w > maxDim) {
+                    h = Math.round(h * maxDim / w);
+                    w = maxDim;
+                }
+            } else {
+                if (h > maxDim) {
+                    w = Math.round(w * maxDim / h);
+                    h = maxDim;
+                }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            ctx.drawImage(img, 0, 0, w, h);
+            
+            const thumbBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            const fullBase64 = e.target.result; // Full image to load when clicked
+
+            const style = document.getElementById('tear_style').value;
+            const theme = document.getElementById('theme').value;
+
+            const item = {
+                id: 'breach_' + Date.now(),
+                timestamp: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                thumbnail: thumbBase64,
+                full: fullBase64,
+                style: style,
+                theme: theme
+            };
+
+            // Insert at beginning
+            historyItems.unshift(item);
+            
+            // Limit history to 15 items to avoid storage overflow
+            if (historyItems.length > 15) {
+                historyItems.pop();
+            }
+
+            saveHistory();
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(blob);
+}
+
+function renderHistory() {
+    const container = document.getElementById('history-grid-container');
+    const emptyState = document.getElementById('history-empty-state');
+    const grid = document.getElementById('history-items-grid');
+
+    grid.innerHTML = '';
+
+    if (historyItems.length === 0) {
+        container.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+    }
+
+    emptyState.classList.add('hidden');
+    container.classList.remove('hidden');
+
+    historyItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        
+        card.innerHTML = `
+            <div class="history-img-wrap" onclick="viewHistoryItem('${item.id}')">
+                <img src="${item.thumbnail}" class="history-img" alt="Breach ${item.timestamp}">
+            </div>
+            <div class="history-card-details">
+                <div>
+                    <div class="history-date">${item.timestamp}</div>
+                    <div style="font-size:0.7rem; color:var(--accent-pink); font-weight:600; text-transform:uppercase;">${item.style} - ${item.theme}</div>
+                </div>
+                <button type="button" class="delete-hist-btn" onclick="deleteHistoryItem('${item.id}', event)">
+                    <i class="fa-regular fa-trash-can"></i>
+                </button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function deleteHistoryItem(id, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    historyItems = historyItems.filter(item => item.id !== id);
+    saveHistory();
+    renderHistory();
+}
+
+function viewHistoryItem(id) {
+    const item = historyItems.find(i => i.id === id);
+    if (!item) return;
+
+    // Load full image back into sandbox comparison viewer
+    document.getElementById('result-after-viewport').src = item.full;
+    document.getElementById('result-before-viewport').src = item.theme === 'light' 
+        ? '/static/assets/sample_portrait_1.png'
+        : '/static/assets/skull_placeholder.png';
+
+    // Switch result blob URL to let download action download this history item
+    resultBlobUrl = item.full;
+
+    // Direct to Dashboard tab to view
+    switchTab('dashboard');
+
+    // Make sure success view is showing in Sandbox
+    document.getElementById('awaiting-state').classList.add('hidden');
+    document.getElementById('processing-state').classList.add('hidden');
+    document.getElementById('success-state').classList.remove('hidden');
+    resetDragPosition();
+}
+
+// Bind Clear History action
+document.getElementById('clear-history-btn').addEventListener('click', () => {
+    if (confirm("Are you sure you want to clear your breach history?")) {
+        historyItems = [];
+        saveHistory();
+        renderHistory();
+    }
+});

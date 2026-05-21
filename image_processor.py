@@ -5,22 +5,40 @@ import numpy as np
 import requests
 from PIL import Image, ImageDraw, ImageFilter, ImageEnhance, ImageChops, ImageOps, ImageFont
 
-FONT_URL = "https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Bold.ttf"
-FONT_PATH = os.path.join(os.path.dirname(__file__), "static", "assets", "Poppins-Bold.ttf")
+FONT_BOLD_URL = "https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Bold.ttf"
+FONT_BOLD_PATH = os.path.join(os.path.dirname(__file__), "static", "assets", "Poppins-Bold.ttf")
+FONT_PATH = FONT_BOLD_PATH  # Backwards compatibility
+
+FONT_REG_URL = "https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Regular.ttf"
+FONT_REG_PATH = os.path.join(os.path.dirname(__file__), "static", "assets", "Poppins-Regular.ttf")
 
 def download_font():
-    """Download Poppins-Bold font if not already present."""
-    if not os.path.exists(FONT_PATH):
-        os.makedirs(os.path.dirname(FONT_PATH), exist_ok=True)
+    """Download Poppins fonts if not already present."""
+    os.makedirs(os.path.dirname(FONT_BOLD_PATH), exist_ok=True)
+    
+    # Download Bold Font
+    if not os.path.exists(FONT_BOLD_PATH):
         try:
-            print(f"Downloading Poppins-Bold font from {FONT_URL}...")
-            r = requests.get(FONT_URL, timeout=15)
+            print(f"Downloading Poppins-Bold font from {FONT_BOLD_URL}...")
+            r = requests.get(FONT_BOLD_URL, timeout=15)
             r.raise_for_status()
-            with open(FONT_PATH, "wb") as f:
+            with open(FONT_BOLD_PATH, "wb") as f:
                 f.write(r.content)
-            print("Font downloaded successfully.")
+            print("Poppins-Bold font downloaded successfully.")
         except Exception as e:
-            print(f"Error downloading font: {e}. Fallback to default font will be used.")
+            print(f"Error downloading Poppins-Bold font: {e}.")
+            
+    # Download Regular Font
+    if not os.path.exists(FONT_REG_PATH):
+        try:
+            print(f"Downloading Poppins-Regular font from {FONT_REG_URL}...")
+            r = requests.get(FONT_REG_URL, timeout=15)
+            r.raise_for_status()
+            with open(FONT_REG_PATH, "wb") as f:
+                f.write(r.content)
+            print("Poppins-Regular font downloaded successfully.")
+        except Exception as e:
+            print(f"Error downloading Poppins-Regular font: {e}.")
 
 def auto_orient_image(img):
     """Auto-orient image based on EXIF data."""
@@ -371,11 +389,206 @@ def draw_meme_text(img, text, theme='dark'):
     # Draw crisp white text
     draw.text((x, y), text, fill=(255, 255, 255, 255), font=font)
 
-def composite_images(portrait_img, profile_img, style='circle', intensity=1.0, meme_text="Hi, I just invaded your Instagram 😂", theme='dark'):
+def get_font(font_type='regular', size=14):
+    try:
+        path = FONT_BOLD_PATH if font_type == 'bold' else FONT_REG_PATH
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size)
+    except Exception:
+        pass
+    return ImageFont.load_default()
+
+def generate_default_instagram_ui(theme='dark', w=1080, h=1080):
+    """
+    Procedurally draws a realistic, vector-clean Instagram profile screen.
+    """
+    # Colors depending on theme
+    if theme == 'dark':
+        bg_color = (0, 0, 0, 255)
+        text_color = (255, 255, 255, 255)
+        sec_text_color = (168, 168, 168, 255)
+        btn_bg = (38, 38, 38, 255)
+        btn_text = (255, 255, 255, 255)
+        border_color = (38, 38, 38, 255)
+        accent_blue = (0, 149, 246, 255)
+    else:
+        bg_color = (255, 255, 255, 255)
+        text_color = (0, 0, 0, 255)
+        sec_text_color = (115, 115, 115, 255)
+        btn_bg = (239, 239, 239, 255)
+        btn_text = (0, 0, 0, 255)
+        border_color = (219, 219, 219, 255)
+        accent_blue = (0, 149, 246, 255)
+
+    img = Image.new("RGBA", (w, h), bg_color)
+    draw = ImageDraw.Draw(img)
+    
+    # 2. Draw Top Bar (Header)
+    # Profile Username
+    username = "invader.ai"
+    font_bold_title = get_font('bold', 34)
+    font_reg_small = get_font('regular', 28)
+    font_bold_small = get_font('bold', 28)
+    
+    # Draw back arrow chevron: <
+    draw.line([(50, 70), (35, 80), (50, 90)], fill=text_color, width=4)
+    
+    # Draw username text
+    draw.text((80, 60), username, fill=text_color, font=font_bold_title)
+    
+    # Draw verified badge next to username
+    user_width = font_bold_title.getlength(username)
+    badge_x = 80 + user_width + 15
+    badge_y = 65
+    # Draw blue circle
+    draw.ellipse([badge_x, badge_y, badge_x + 30, badge_y + 30], fill=accent_blue)
+    # Draw white checkmark inside badge
+    draw.line([(badge_x + 9, badge_y + 16), (badge_x + 14, badge_y + 21), (badge_x + 21, badge_y + 12)], fill=(255, 255, 255, 255), width=3)
+    
+    # Draw right header buttons (three dots)
+    draw.ellipse([930, 80, 936, 86], fill=text_color)
+    draw.ellipse([950, 80, 956, 86], fill=text_color)
+    draw.ellipse([970, 80, 976, 86], fill=text_color)
+    
+    # 3. Draw Profile Info Row (Avatar + Stats)
+    avatar_size = 180
+    avatar_x, avatar_y = 60, 160
+    
+    # Draw avatar circle or load skull placeholder
+    avatar_loaded = False
+    skull_path = os.path.join(os.path.dirname(__file__), "static", "assets", "skull_placeholder.png")
+    if os.path.exists(skull_path):
+        try:
+            sk_img = Image.open(skull_path).convert("RGBA")
+            sk_img = sk_img.resize((avatar_size, avatar_size), Image.Resampling.LANCZOS)
+            # Create a circular mask
+            mask = Image.new("L", (avatar_size, avatar_size), 0)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.ellipse([0, 0, avatar_size, avatar_size], fill=255)
+            # Paste into our canvas
+            avatar_circle = Image.new("RGBA", (avatar_size, avatar_size), (0,0,0,0))
+            avatar_circle.paste(sk_img, (0,0), mask)
+            img.paste(avatar_circle, (avatar_x, avatar_y), avatar_circle)
+            avatar_loaded = True
+        except Exception as e:
+            print(f"Error drawing skull avatar: {e}")
+            
+    if not avatar_loaded:
+        draw.ellipse([avatar_x, avatar_y, avatar_x + avatar_size, avatar_y + avatar_size], fill=btn_bg)
+        draw.text((avatar_x + 55, avatar_y + 55), "💀", fill=text_color, font=get_font('bold', 48))
+
+    # Stats layout
+    draw.text((440, 190), "42", fill=text_color, font=font_bold_small, anchor="mm")
+    draw.text((690, 190), "1.8M", fill=text_color, font=font_bold_small, anchor="mm")
+    draw.text((920, 190), "248", fill=text_color, font=font_bold_small, anchor="mm")
+    
+    font_reg_label = get_font('regular', 24)
+    draw.text((440, 240), "Posts", fill=sec_text_color, font=font_reg_label, anchor="mm")
+    draw.text((690, 240), "Followers", fill=sec_text_color, font=font_reg_label, anchor="mm")
+    draw.text((920, 240), "Following", fill=sec_text_color, font=font_reg_label, anchor="mm")
+
+    # 4. Draw Bio Section
+    bio_y = 370
+    draw.text((60, bio_y), "Instagram Invader AI ⚡", fill=text_color, font=font_bold_small)
+    draw.text((60, bio_y + 40), "Product/Service", fill=sec_text_color, font=font_reg_small)
+    draw.text((60, bio_y + 80), "🤖 Procedural 3D pop-out meme engine", fill=text_color, font=font_reg_small)
+    draw.text((60, bio_y + 120), "🔥 Break through normal social grids", fill=text_color, font=font_reg_small)
+    draw.text((60, bio_y + 160), "👇 Tap INVADE to tear your feed!", fill=text_color, font=font_reg_small)
+    draw.text((60, bio_y + 200), "invader.ai/install", fill=accent_blue, font=font_bold_small)
+
+    # 5. Buttons Row
+    btn_y = 650
+    btn_w = 460
+    btn_h = 72
+    draw.rounded_rectangle([60, btn_y, 60 + btn_w, btn_y + btn_h], radius=16, fill=accent_blue)
+    draw.text((60 + btn_w // 2, btn_y + btn_h // 2), "Follow", fill=(255,255,255,255), font=font_bold_small, anchor="mm")
+    
+    draw.rounded_rectangle([540, btn_y, 540 + btn_w, btn_y + btn_h], radius=16, fill=btn_bg)
+    draw.text((540 + btn_w // 2, btn_y + btn_h // 2), "Message", fill=btn_text, font=font_bold_small, anchor="mm")
+
+    # 6. Highlights Row
+    hl_y = 750
+    hl_r = 130
+    hl_titles = ["Breaches", "Styles", "Sandbox", "FAQ"]
+    hl_emojis = ["⚡", "🎨", "👾", "🚀"]
+    
+    for i in range(4):
+        cx = 60 + i * (hl_r + 105)
+        if i < 2:
+            draw.ellipse([cx, hl_y, cx + hl_r, hl_y + hl_r], outline=(255, 20, 147, 255), width=3)
+        else:
+            draw.ellipse([cx, hl_y, cx + hl_r, hl_y + hl_r], outline=border_color, width=3)
+            
+        inner_cx = cx + 8
+        inner_cy = hl_y + 8
+        inner_r = hl_r - 16
+        draw.ellipse([inner_cx, inner_cy, inner_cx + inner_r, inner_cy + inner_r], fill=btn_bg)
+        draw.text((inner_cx + inner_r // 2, inner_cy + inner_r // 2), hl_emojis[i], fill=text_color, font=get_font('bold', 40), anchor="mm")
+        draw.text((cx + hl_r // 2, hl_y + hl_r + 25), hl_titles[i], fill=text_color, font=get_font('regular', 22), anchor="mm")
+
+    # 7. Tab Bar
+    tab_y = 935
+    tab_h = 80
+    draw.line([(0, tab_y), (w, tab_y)], fill=border_color, width=2)
+    indicator_w = w // 3
+    draw.line([(0, tab_y + tab_h - 2), (indicator_w, tab_y + tab_h - 2)], fill=text_color, width=4)
+    
+    # Draw Grid Icon Tab 1
+    grid_cx = indicator_w // 2
+    grid_cy = tab_y + tab_h // 2
+    gs = 8
+    gsp = 4
+    for r in range(3):
+        for c in range(3):
+            sx = grid_cx - 16 + c * (gs + gsp)
+            sy = grid_cy - 16 + r * (gs + gsp)
+            draw.rectangle([sx, sy, sx + gs, sy + gs], fill=text_color)
+            
+    # Draw Reels Icon Tab 2
+    reels_cx = indicator_w + indicator_w // 2
+    reels_cy = tab_y + tab_h // 2
+    draw.rectangle([reels_cx - 15, reels_cy - 15, reels_cx + 15, reels_cy + 15], outline=sec_text_color, width=3)
+    draw.line([(reels_cx - 15, reels_cy - 7), (reels_cx + 15, reels_cy - 7)], fill=sec_text_color, width=3)
+    draw.polygon([(reels_cx - 4, reels_cy - 2), (reels_cx - 4, reels_cy + 6), (reels_cx + 5, reels_cy + 2)], fill=sec_text_color)
+    
+    # Draw Tagged Icon Tab 3
+    tagged_cx = indicator_w * 2 + indicator_w // 2
+    tagged_cy = tab_y + tab_h // 2
+    draw.ellipse([tagged_cx - 8, tagged_cy - 14, tagged_cx + 8, tagged_cy - 2], outline=sec_text_color, width=3)
+    draw.arc([tagged_cx - 14, tagged_cy, tagged_cx + 14, tagged_cy + 16], start=180, end=360, fill=sec_text_color, width=3)
+
+    # 8. Posts Grid
+    grid_start_y = tab_y + tab_h
+    post_size = (w - 12) // 3
+    for i in range(3):
+        px = 3 + i * (post_size + 3)
+        py = grid_start_y + 3
+        post_img = Image.new("RGBA", (post_size, post_size), bg_color)
+        p_draw = ImageDraw.Draw(post_img)
+        if i == 0:
+            for y_grad in range(post_size):
+                alpha = int(255 * (y_grad / post_size))
+                p_draw.line([(0, y_grad), (post_size, y_grad)], fill=(255, 20, 147, alpha))
+        elif i == 1:
+            for y_grad in range(post_size):
+                alpha = int(255 * (y_grad / post_size))
+                p_draw.line([(0, y_grad), (post_size, y_grad)], fill=(155, 81, 224, alpha))
+        else:
+            for y_grad in range(post_size):
+                alpha = int(255 * (y_grad / post_size))
+                p_draw.line([(0, y_grad), (post_size, y_grad)], fill=(0, 240, 255, alpha))
+        img.paste(post_img, (px, py), post_img)
+
+    return img
+
+def composite_images(portrait_img, profile_img=None, style='circle', intensity=1.0, meme_text="Hi, I just invaded your Instagram 😂", theme='dark'):
     """
     Core image processing pipeline.
     Composites the portrait cutout inside a procedural torn paper hole on top of the Instagram profile.
     """
+    if profile_img is None:
+        profile_img = generate_default_instagram_ui(theme, 1080, 1080)
+
     # 1. Standardize Canvas Size (Instagram post size, target width 1080px)
     target_w = 1080
     orig_w, orig_h = profile_img.size
