@@ -26,7 +26,7 @@ function initAuthentication() {
                         uid: user.uid,
                         email: user.email,
                         displayName: user.displayName || user.email.split('@')[0],
-                        photoURL: user.photoURL || '/static/assets/skull_placeholder.png'
+                        photoURL: user.photoURL || 'static/assets/skull_placeholder.png'
                     });
                 } else {
                     onLogoutSuccess();
@@ -182,7 +182,7 @@ function handleEmailLogin() {
                 uid: 'mock_' + Date.now(),
                 email: user.email,
                 displayName: user.name || user.email.split('@')[0],
-                photoURL: '/static/assets/skull_placeholder.png'
+                photoURL: 'static/assets/skull_placeholder.png'
             };
             localStorage.setItem('invader_mock_session', JSON.stringify(userData));
             onLoginSuccess(userData);
@@ -246,7 +246,7 @@ function handleEmailSignup() {
                 uid: 'mock_' + Date.now(),
                 email: email,
                 displayName: name,
-                photoURL: '/static/assets/skull_placeholder.png'
+                photoURL: 'static/assets/skull_placeholder.png'
             };
             localStorage.setItem('invader_mock_session', JSON.stringify(userData));
             onLoginSuccess(userData);
@@ -285,7 +285,7 @@ function handleGoogleSignIn() {
                 uid: 'google_mock_' + Math.floor(Math.random() * 100000),
                 email: 'google.guest@example.com',
                 displayName: 'Guest Invader',
-                photoURL: '/static/assets/skull_placeholder.png'
+                photoURL: 'static/assets/skull_placeholder.png'
             };
             localStorage.setItem('invader_mock_session', JSON.stringify(userData));
             onLoginSuccess(userData);

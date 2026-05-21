@@ -1,10 +1,12 @@
 import os
 import io
 from flask import Flask, request, render_template, send_file, jsonify
+from flask_cors import CORS
 from PIL import Image
 from image_processor import composite_images, download_font
 
 app = Flask(__name__)
+CORS(app)
 
 # Configure maximum upload size to 12MB
 app.config['MAX_CONTENT_LENGTH'] = 12 * 1024 * 1024

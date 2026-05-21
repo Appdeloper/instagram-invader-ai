@@ -7,6 +7,20 @@ let files = {
 let resultBlobUrl = null;
 let activeTab = 'dashboard';
 
+// Determine API Base URL configuration
+function getApiBaseUrl() {
+    const savedApiUrl = localStorage.getItem('invader_api_url');
+    if (savedApiUrl !== null) {
+        return savedApiUrl;
+    }
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return '';
+    } else {
+        return 'http://127.0.0.1:5000';
+    }
+}
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     initTabNavigation();
@@ -17,6 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initInvadeActions();
     initComparisonSlider();
     loadHistory();
+    initStitchToolkit();
+    initSettings();
 });
 
 // 1. Tab Navigation
@@ -291,7 +307,8 @@ function initInvadeActions() {
         ];
 
         try {
-            const response = await fetch('/api/generate', {
+            const apiBase = getApiBaseUrl();
+            const response = await fetch(`${apiBase}/api/generate`, {
                 method: 'POST',
                 body: formData
             });
@@ -319,8 +336,8 @@ function initInvadeActions() {
                 // If light theme is active, background is white, else dark black
                 const activeTheme = document.getElementById('theme').value;
                 document.getElementById('result-before-viewport').src = activeTheme === 'light' 
-                    ? '/static/assets/sample_portrait_1.png' // Or simple default UI
-                    : '/static/assets/skull_placeholder.png';
+                    ? 'static/assets/sample_portrait_1.png' // Or simple default UI
+                    : 'static/assets/skull_placeholder.png';
             }
 
             updateMilestone(0, 'completed');
@@ -585,8 +602,8 @@ function viewHistoryItem(id) {
     // Load full image back into sandbox comparison viewer
     document.getElementById('result-after-viewport').src = item.full;
     document.getElementById('result-before-viewport').src = item.theme === 'light' 
-        ? '/static/assets/sample_portrait_1.png'
-        : '/static/assets/skull_placeholder.png';
+        ? 'static/assets/sample_portrait_1.png'
+        : 'static/assets/skull_placeholder.png';
 
     // Switch result blob URL to let download action download this history item
     resultBlobUrl = item.full;
@@ -609,3 +626,216 @@ document.getElementById('clear-history-btn').addEventListener('click', () => {
         renderHistory();
     }
 });
+
+// 9. Google Stitch AI UI Toolkit
+function initStitchToolkit() {
+    const triggerBtn = document.getElementById('stitch-toolkit-trigger');
+    const modal = document.getElementById('stitch-toolkit-modal');
+    const closeBtn = document.getElementById('stitch-close-btn');
+    
+    if (!triggerBtn || !modal || !closeBtn) return;
+    
+    // Toggle Modal visibility
+    triggerBtn.addEventListener('click', () => {
+        modal.style.display = 'flex';
+        populateTokensJSON();
+    });
+    
+    closeBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+
+    // Stitch tabs switching
+    const tabs = modal.querySelectorAll('.stitch-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.stitchTab;
+            
+            // Toggle active class on buttons
+            tabs.forEach(t => {
+                if (t.dataset.stitchTab === targetTab) t.classList.add('active');
+                else t.classList.remove('active');
+            });
+            
+            // Toggle visibility of sections
+            modal.querySelectorAll('.stitch-tab-content').forEach(content => {
+                if (content.id === `stitch-content-${targetTab}`) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
+
+    // Copy Design Tokens
+    const copyTokensBtn = document.getElementById('copy-tokens-btn');
+    if (copyTokensBtn) {
+        copyTokensBtn.addEventListener('click', () => {
+            const codeEl = document.getElementById('tokens-json-display');
+            navigator.clipboard.writeText(codeEl.textContent).then(() => {
+                const origText = copyTokensBtn.innerHTML;
+                copyTokensBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                copyTokensBtn.style.background = 'var(--accent-cyan)';
+                setTimeout(() => {
+                    copyTokensBtn.innerHTML = origText;
+                    copyTokensBtn.style.background = '';
+                }, 2000);
+            });
+        });
+    }
+
+    // Copy Vibe Prompts
+    const copyPromptBtns = modal.querySelectorAll('.copy-prompt-btn');
+    copyPromptBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const promptId = btn.dataset.promptId;
+            const textEl = document.getElementById(`${promptId}-text`);
+            if (textEl) {
+                navigator.clipboard.writeText(textEl.textContent).then(() => {
+                    const origText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                    btn.style.background = 'var(--accent-pink)';
+                    setTimeout(() => {
+                        btn.innerHTML = origText;
+                        btn.style.background = '';
+                    }, 2000);
+                });
+            }
+        });
+    });
+
+    // Sandbox Playground Rendering
+    const applyBtn = document.getElementById('apply-sandbox-btn');
+    const textInput = document.getElementById('sandbox-code-input');
+    const previewFrame = document.getElementById('sandbox-preview-frame');
+
+    if (applyBtn && textInput && previewFrame) {
+        applyBtn.addEventListener('click', () => {
+            const rawHTML = textInput.value.trim();
+            if (!rawHTML) {
+                previewFrame.innerHTML = '<div class="empty-sandbox-tip">Paste Stitch-generated HTML on the left and click "Render" to preview here.</div>';
+                return;
+            }
+            
+            // Inject user-pasted HTML safely in the preview zone
+            previewFrame.innerHTML = rawHTML;
+            
+            // If they paste scripts or class elements, let's keep them styled appropriately
+            const scripts = previewFrame.querySelectorAll('script');
+            scripts.forEach(script => {
+                const newScript = document.createElement('script');
+                if (script.src) {
+                    newScript.src = script.src;
+                } else {
+                    newScript.textContent = script.textContent;
+                }
+                document.body.appendChild(newScript).parentNode.removeChild(newScript);
+            });
+        });
+    }
+}
+
+// Function to load and format design tokens JSON
+function populateTokensJSON() {
+    const jsonDisplay = document.getElementById('tokens-json-display');
+    if (!jsonDisplay) return;
+    
+    const tokens = {
+        "name": "Instagram Invader AI",
+        "aesthetic": "Cinematic Dark Mode / Glassmorphism",
+        "colors": {
+            "background": "#0a0612",
+            "surface_card": "rgba(18, 12, 28, 0.75)",
+            "accent_pink": "#d946ef",
+            "accent_purple": "#a855f7",
+            "accent_cyan": "#06b6d4",
+            "border_glass": "rgba(255, 255, 255, 0.08)",
+            "text_main": "#f8fafc",
+            "text_muted": "#94a3b8"
+        },
+        "fonts": {
+            "headers": "Poppins",
+            "body": "Outfit"
+        },
+        "shadows": {
+            "pink_glow": "0 0 20px rgba(217, 70, 239, 0.5)",
+            "cyan_glow": "0 0 20px rgba(6, 182, 212, 0.5)"
+        },
+        "layouts": {
+            "max_width": "1280px",
+            "card_radius": "24px",
+            "button_radius": "12px"
+        }
+    };
+    
+    jsonDisplay.textContent = JSON.stringify(tokens, null, 4);
+}
+
+// 10. Application Settings Manager
+function initSettings() {
+    const triggerBtn = document.getElementById('settings-trigger-btn');
+    const modal = document.getElementById('settings-modal');
+    const closeBtn = document.getElementById('settings-close-btn');
+    const cancelBtn = document.getElementById('settings-cancel-btn');
+    const saveBtn = document.getElementById('settings-save-btn');
+    const apiUrlInput = document.getElementById('settings-api-url');
+    const authModeSelect = document.getElementById('settings-auth-mode');
+
+    if (!modal) return;
+
+    // Helper function to toggle modal
+    const toggleModal = (show) => {
+        if (show) {
+            // Load current settings values into inputs
+            apiUrlInput.value = localStorage.getItem('invader_api_url') || '';
+            authModeSelect.value = localStorage.getItem('invader_auth_mode') || 'mock';
+            modal.style.display = 'flex';
+        } else {
+            modal.style.display = 'none';
+        }
+    };
+
+    if (triggerBtn) {
+        triggerBtn.addEventListener('click', () => toggleModal(true));
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => toggleModal(false));
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => toggleModal(false));
+    }
+
+    // Close when clicking overlay background
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            toggleModal(false);
+        }
+    });
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            const newUrl = apiUrlInput.value.trim();
+            const newAuthMode = authModeSelect.value;
+
+            // Save to localStorage
+            if (newUrl) {
+                localStorage.setItem('invader_api_url', newUrl);
+            } else {
+                localStorage.removeItem('invader_api_url');
+            }
+            localStorage.setItem('invader_auth_mode', newAuthMode);
+
+            // Reload page to apply new configurations
+            window.location.reload();
+        });
+    }
+}

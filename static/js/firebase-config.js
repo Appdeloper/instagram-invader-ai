@@ -12,6 +12,11 @@ window.firebaseConfig = {
     appId: "YOUR_APP_ID_HERE"
 };
 
-// Set to true to mock Firebase Auth client-side for rapid local testing.
-// Set to false to connect to your live Firebase project once you populate firebaseConfig.
-window.USE_MOCK_AUTH = true;
+// Dynamic auth mode configuration (Mock vs Firebase) from Settings
+const savedAuthMode = localStorage.getItem('invader_auth_mode');
+if (savedAuthMode) {
+    window.USE_MOCK_AUTH = (savedAuthMode === 'mock');
+} else {
+    // Default to true (mock) for local testing without keys, or if on GitHub Pages
+    window.USE_MOCK_AUTH = true;
+}

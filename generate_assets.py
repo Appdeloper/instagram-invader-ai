@@ -12,29 +12,26 @@ def main():
     # URL 2: Male portrait
     samples = [
         {
-            "url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
+            "url": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600&auto=format&fit=crop&q=80",
             "name": "sample_portrait_1.png"
         },
         {
-            "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80",
+            "url": "https://images.unsplash.com/photo-1778692258270-bc0e80e975c0?w=600&auto=format&fit=crop&q=80",
             "name": "sample_portrait_2.png"
         }
     ]
     
     for sample in samples:
         target_path = os.path.join(assets_dir, sample["name"])
-        if not os.path.exists(target_path):
-            try:
-                print(f"Downloading {sample['name']} from Unsplash...")
-                r = requests.get(sample["url"], timeout=20)
-                r.raise_for_status()
-                with open(target_path, "wb") as f:
-                    f.write(r.content)
-                print(f"  [OK] Saved {sample['name']}")
-            except Exception as e:
-                print(f"  [ERROR] Failed to download {sample['name']}: {e}")
-        else:
-            print(f"  [SKIP] {sample['name']} already exists.")
+        try:
+            print(f"Downloading {sample['name']} from Unsplash...")
+            r = requests.get(sample["url"], timeout=20)
+            r.raise_for_status()
+            with open(target_path, "wb") as f:
+                f.write(r.content)
+            print(f"  [OK] Saved {sample['name']}")
+        except Exception as e:
+            print(f"  [ERROR] Failed to download {sample['name']}: {e}")
             
     # 2. Pre-generate Gallery Showcase Composites
     try:
@@ -43,7 +40,7 @@ def main():
         # Gallery 1: Female portrait in circle rip dark theme
         g1_path = os.path.join(assets_dir, "gallery_1.png")
         p1_path = os.path.join(assets_dir, "sample_portrait_1.png")
-        if os.path.exists(p1_path) and not os.path.exists(g1_path):
+        if os.path.exists(p1_path):
             print("Generating gallery_1.png...")
             p1_img = Image.open(p1_path)
             res1 = composite_images(
@@ -60,7 +57,7 @@ def main():
         # Gallery 2: Male portrait in vertical slit light theme
         g2_path = os.path.join(assets_dir, "gallery_2.png")
         p2_path = os.path.join(assets_dir, "sample_portrait_2.png")
-        if os.path.exists(p2_path) and not os.path.exists(g2_path):
+        if os.path.exists(p2_path):
             print("Generating gallery_2.png...")
             p2_img = Image.open(p2_path)
             res2 = composite_images(
