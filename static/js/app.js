@@ -24,7 +24,7 @@ function getApiBaseUrl() {
     
     // Auto-migrate: If we are on GitHub Pages (not localhost) and the saved API URL 
     // points to insecure localhost (which will fail due to Mixed Content), clear it!
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.startsWith('192.168.') && !hostname.startsWith('10.') && !hostname.startsWith('172.')) {
         if (savedApiUrl === 'http://127.0.0.1:5000' || savedApiUrl === 'http://localhost:5000') {
             localStorage.removeItem('invader_api_url');
             savedApiUrl = null;
@@ -35,7 +35,14 @@ function getApiBaseUrl() {
         return savedApiUrl;
     }
     
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // If running on local server, local network IP, or inside the localtunnel itself,
+    // use relative path so requests are naturally sent back to the same backend.
+    if (hostname === 'localhost' || 
+        hostname === '127.0.0.1' || 
+        hostname.startsWith('192.168.') || 
+        hostname.startsWith('10.') || 
+        hostname.startsWith('172.') || 
+        hostname.endsWith('.loca.lt')) {
         return '';
     } else {
         return 'https://angry-pens-push.loca.lt';
@@ -359,15 +366,51 @@ function initInvadeActions() {
             }, 6000)
         ];
 
+        // Start live simulated progress percentage animation
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        const progressBarPercentage = document.getElementById('progress-bar-percentage');
+        
+        if (progressBarFill && progressBarPercentage) {
+            progressBarFill.style.width = '0%';
+            progressBarPercentage.textContent = '0%';
+        }
+        
+        let currentProgress = 0;
+        const progressInterval = setInterval(() => {
+            if (currentProgress < 30) {
+                currentProgress += Math.random() * 6 + 2; // Fast start
+            } else if (currentProgress < 75) {
+                currentProgress += Math.random() * 1.5 + 0.3; // Slower background isolation
+            } else if (currentProgress < 95) {
+                currentProgress += Math.random() * 0.5 + 0.1; // Slow lighting and adjustments
+            }
+            if (currentProgress > 95) currentProgress = 95;
+            
+            const displayProgress = Math.floor(currentProgress);
+            if (progressBarFill && progressBarPercentage) {
+                progressBarFill.style.width = `${displayProgress}%`;
+                progressBarPercentage.textContent = `${displayProgress}%`;
+            }
+        }, 120);
+
         try {
             const apiBase = getApiBaseUrl();
             const response = await fetch(`${apiBase}/api/generate`, {
                 method: 'POST',
+                headers: {
+                    'Bypass-Tunnel-Reminder': 'true'
+                },
                 body: formData
             });
 
             // Stop animations
             progressTimers.forEach(clearTimeout);
+            clearInterval(progressInterval);
+
+            if (progressBarFill && progressBarPercentage) {
+                progressBarFill.style.width = '100%';
+                progressBarPercentage.textContent = '100%';
+            }
 
             if (!response.ok) {
                 const errData = await response.json();
@@ -411,6 +454,12 @@ function initInvadeActions() {
 
         } catch (err) {
             console.error("Invasion pipeline error:", err);
+            // Stop progress bar interval
+            clearInterval(progressInterval);
+            if (progressBarFill && progressBarPercentage) {
+                progressBarFill.style.width = '0%';
+                progressBarPercentage.textContent = '0%';
+            }
             processingState.classList.add('hidden');
             awaitingState.classList.remove('hidden');
             

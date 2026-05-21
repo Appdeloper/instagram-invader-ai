@@ -39,7 +39,7 @@ def generate():
 
     # 2. Extract Options
     tear_style = request.form.get('tear_style', 'circle')
-    if tear_style not in ['circle', 'vertical', 'horizontal', 'diagonal']:
+    if tear_style not in ['circle', 'vertical', 'horizontal', 'diagonal', 'profile_breakout']:
         tear_style = 'circle'
         
     try:

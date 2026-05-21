@@ -119,7 +119,11 @@
                         <div class="form-group">
                             <label class="group-label">Preset Tear Styles</label>
                             <div class="tear-presets-grid">
-                                <button type="button" class="preset-card active" data-preset="circle">
+                                <button type="button" class="preset-card active" data-preset="profile_breakout">
+                                    <i class="fa-solid fa-user-ninja preset-icon"></i>
+                                    <span>Profile Breakout</span>
+                                </button>
+                                <button type="button" class="preset-card" data-preset="circle">
                                     <i class="fa-regular fa-circle-dot preset-icon"></i>
                                     <span>Circle Rip</span>
                                 </button>
@@ -136,7 +140,7 @@
                                     <span>Diagonal Tear</span>
                                 </button>
                             </div>
-                            <input type="hidden" id="tear_style" name="tear_style" value="circle">
+                            <input type="hidden" id="tear_style" name="tear_style" value="profile_breakout">
                         </div>
 
                         <!-- Caption Input -->
@@ -205,6 +209,18 @@
                                 <i class="fa-solid fa-skull loading-skull-icon"></i>
                             </div>
                             <h3 class="processing-status-text">Initializing Engine...</h3>
+                            
+                            <!-- Live Progress Bar -->
+                            <div class="progress-bar-wrapper">
+                                <div class="progress-bar-header">
+                                    <span>Breach Progress</span>
+                                    <span id="progress-bar-percentage">0%</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                                </div>
+                            </div>
+
                             <ul class="processing-milestones">
                                 <li class="milestone active" id="m-0"><i class="fa-solid fa-circle-check"></i> Launching pipeline...</li>
                                 <li class="milestone" id="m-1"><i class="fa-solid fa-circle-notch"></i> Clipping subject background (rembg)...</li>
@@ -266,6 +282,17 @@
                 <p class="section-subtext-custom">Select a style template to apply to your generator configuration.</p>
                 
                 <div class="presets-gallery-grid">
+                    <div class="preset-gallery-card" data-preset="profile_breakout">
+                        <div class="preset-card-visual">
+                            <div class="demo-tear-shape shape-profile-breakout"></div>
+                        </div>
+                        <div class="preset-card-details">
+                            <h3>Profile Breakout</h3>
+                            <p>The signature 3D pop-out style matching the reference image. Centers a jagged organic tear at the grid-bio junction for maximum impact.</p>
+                            <button class="apply-preset-btn">Select Style</button>
+                        </div>
+                    </div>
+
                     <div class="preset-gallery-card" data-preset="circle">
                         <div class="preset-card-visual bg-circle-tear">
                             <div class="demo-tear-shape shape-circle"></div>

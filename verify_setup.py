@@ -50,6 +50,11 @@ def run_tests():
         assert len(boundaries_v) == 2, "Vertical tear should have 2 boundary paths"
         print("  [OK] Vertical style procedural tear masks created successfully.")
         
+        # Test profile breakout mask
+        paper_pb, hole_pb, boundaries_pb = image_processor.create_tear_masks(w, h, 'profile_breakout', 1.0)
+        assert len(boundaries_pb) == 1, "Profile breakout tear should have 1 boundary path"
+        print("  [OK] Profile breakout style procedural tear masks created successfully.")
+        
         # Test paper texture
         texture = image_processor.generate_paper_texture(w, h)
         assert texture.size == (w, h), "Texture size mismatch"

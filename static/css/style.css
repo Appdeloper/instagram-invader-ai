@@ -774,6 +774,44 @@ input[type="range"]::-webkit-slider-thumb:hover {
     margin-bottom: 1.8rem;
 }
 
+/* Premium Glassmorphic Progress Bar */
+.progress-bar-wrapper {
+    width: 85%;
+    max-width: 400px;
+    margin-bottom: 2.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.progress-bar-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 30px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+    position: relative;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent-pink), var(--accent-cyan));
+    border-radius: 30px;
+    box-shadow: 0 0 12px rgba(217, 70, 239, 0.5);
+    transition: width 0.15s linear;
+}
+
 .processing-milestones {
     list-style: none;
     text-align: left;
@@ -1070,6 +1108,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border: none;
     border-top: 2px dashed var(--accent-pink);
     transform: rotate(45deg);
+}
+
+.shape-profile-breakout {
+    width: 42px;
+    height: 64px;
+    border: 2px dashed var(--accent-pink);
+    border-radius: 40% 40% 30% 30%;
+    box-shadow: 0 0 10px rgba(217, 70, 239, 0.2);
 }
 
 .preset-card-details {

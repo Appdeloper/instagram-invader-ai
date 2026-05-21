@@ -258,6 +258,34 @@ def create_tear_masks(w, h, style='circle', intensity=1.0):
         boundaries.append(edge1)
         boundaries.append(edge2)
         
+    elif style == 'profile_breakout':
+        # Elongated vertical organic tear centered around the grid-bio junction
+        cx = w / 2
+        cy = h * 0.54
+        rx = w * 0.26 * intensity
+        ry = h * 0.18 * intensity
+        
+        num_vertices = 16
+        angles = [2 * math.pi * i / num_vertices for i in range(num_vertices)]
+        base_points = []
+        for a in angles:
+            # Vary radius based on ellipse equation with noise
+            denom = math.sqrt((ry * math.cos(a))**2 + (rx * math.sin(a))**2)
+            r_base = (rx * ry) / denom if denom > 0 else rx
+            var_r = r_base * random.uniform(0.88, 1.12)
+            base_points.append((cx + var_r * math.cos(a), cy + var_r * math.sin(a)))
+            
+        # Displace each segment
+        all_points = []
+        for i in range(num_vertices):
+            p1 = base_points[i]
+            p2 = base_points[(i + 1) % num_vertices]
+            all_points.extend(generate_jagged_line(p1, p2, depth=4, roughness=0.18)[:-1])
+            
+        # Draw the hole
+        draw.polygon(all_points, fill=0)
+        boundaries.append(all_points + [all_points[0]])
+        
     else:  # Default to simple center circular hole
         return create_tear_masks(w, h, 'circle', intensity)
         
@@ -701,7 +729,12 @@ def composite_images(portrait_img, profile_img=None, style='circle', intensity=1
     # Position subject centered horizontally, aligned towards the lower middle vertically
     pos_x = (canvas_w - new_subj_w) // 2
     # Place slightly lower so head is in center
-    pos_y = int(canvas_h * 0.15) if style == 'circle' else int(canvas_h * 0.2)
+    if style == 'circle':
+        pos_y = int(canvas_h * 0.15)
+    elif style == 'profile_breakout':
+        pos_y = int(canvas_h * 0.12)
+    else:
+        pos_y = int(canvas_h * 0.2)
     # Ensure fits within canvas bounds nicely
     pos_y = max(50, min(pos_y, canvas_h - new_subj_h - 20))
     
@@ -775,8 +808,12 @@ def composite_images(portrait_img, profile_img=None, style='circle', intensity=1
     grad_arr = np.ones((canvas_h, canvas_w), dtype=np.uint8) * 255
     
     # Define start and end of fade transition
-    fade_start = int(canvas_h * 0.38)
-    fade_end = int(canvas_h * 0.78)
+    if style == 'profile_breakout':
+        fade_start = int(canvas_h * 0.42)
+        fade_end = int(canvas_h * 0.82)
+    else:
+        fade_start = int(canvas_h * 0.38)
+        fade_end = int(canvas_h * 0.78)
     
     for y in range(canvas_h):
         if y < fade_start:
