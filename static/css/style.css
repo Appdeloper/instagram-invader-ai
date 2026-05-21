@@ -30,6 +30,11 @@
     padding: 0;
 }
 
+/* Global utility for hiding elements */
+.hidden {
+    display: none !important;
+}
+
 body {
     background-color: var(--bg-surface);
     color: var(--text-main);
